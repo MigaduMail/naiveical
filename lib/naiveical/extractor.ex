@@ -42,10 +42,16 @@ defmodule Naiveical.Extractor do
 
   """
   def extract_contentline_by_tag(ical_text, tag) do
-    {:ok, regex} = Regex.compile("^#{tag}[;]?(.*):(.*)$", [:multiline])
-    ical_text = Helpers.unfold(ical_text)
+    tag = String.upcase(tag)
 
-    [_, properties, values] = Regex.run(regex, ical_text)
-    {tag, String.trim(properties), String.trim(values)}
+    if String.contains?(ical_text, tag) do
+      {:ok, regex} = Regex.compile("^#{tag}[;]?(.*):(.*)$", [:multiline])
+      ical_text = Helpers.unfold(ical_text)
+
+      [_, properties, values] = Regex.run(regex, ical_text)
+      {tag, String.trim(properties), String.trim(values)}
+    else
+      nil
+    end
   end
 end
