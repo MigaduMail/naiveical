@@ -76,7 +76,7 @@ defmodule Naiveical.Creator do
       other <>
         if opts[:dtstamp],
           do: "DTSTAMP:#{Timex.format!(opts[:dtstamp], @datetime_format_str)}\n",
-          else: "Timex.format!(DateTime.utc_now(), @datetime_format_str)\n"
+          else: "#{Timex.format!(DateTime.utc_now(), @datetime_format_str)}\n"
 
     ical =
       ("""
