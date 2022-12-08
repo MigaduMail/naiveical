@@ -1,8 +1,8 @@
 # Naiveical
 
 With naiveical you can extract parts of an icalendar file and update individual
-lines. It does not parse the icalendar but rather works directly with pure text. 
-As such it does not prevent you from doing stupid things, such as embedding 
+lines. It does not parse the icalendar but rather works directly with pure text.
+As such it does not prevent you from doing stupid things, such as embedding
 elements into each other that have no meaning.
 
 The advantage of this approach is to keep the icalendar text as close to the
@@ -45,16 +45,24 @@ Create a new valert:
 
 ``` elixir
 alarm = Naiveical.Creator.create_valarm("Ring the bell", "-PT15M")
+alarm2 = Naiveical.Creator.create_valarm("Ring the bell", "-PT5M")
 ```
 
-Assemble the tree together:
+Assemble all together:
 
 ``` elixir
       {:ok, todo} = Naiveical.Modificator.insert_into(todo, alarm, "VTODO")
+      {:ok, todo} = Naiveical.Modificator.insert_into(todo, alarm2, "VTODO")
       {:ok, ical} = Naiveical.Modificator.insert_into(ical, todo, "VCALENDAR")
 ```
 
-Change the summary
+Change the summary:
+
+``` elixir
+      valarms = Naiveical.Extractor.extract_sections_by_tag(ical, "VALARM")
+```
+
+Extract the alerts:
 
 ``` elixir
       updated_ical = Naiveical.Modificator.change_value(ical, "summary", "my updated summary")
