@@ -88,4 +88,52 @@ defmodule Naiveical.Modificator do
       {:error, "There is no ending of element #{element}"}
     end
   end
+
+  @doc """
+  Remove all elements of a specific type.
+  """
+  def delete_all(ical_text, tag) do
+    if String.contains?(ical_text, "END:#{tag}") do
+      ical_text = String.replace(ical_text, "\r\n", "\n")
+      {:ok, regex_begin} = Regex.compile("BEGIN:#{tag}", [:multiline, :ungreedy])
+      {:ok, regex_end} = Regex.compile("END:#{tag}", [:multiline, :ungreedy])
+
+      begins = Regex.scan(regex_begin, ical_text, return: :index)
+      ends = Regex.scan(regex_end, ical_text, return: :index)
+
+      if length(begins) == length(ends) do
+        [{first_begin_start, first_begin_length}] = Enum.at(begins, 0)
+        [{last_end_start, last_end_length}] = Enum.at(ends, -1)
+
+        last_part =
+          String.slice(
+            ical_text,
+            last_end_start + last_end_length,
+            String.length(ical_text) - last_end_start + last_end_length
+          )
+
+        new_ical =
+          Enum.reduce(
+            0..(length(begins) - 2),
+            String.slice(ical_text, 0, first_begin_start - 1),
+            fn i, acc ->
+              [{end_start, end_length}] = Enum.at(ends, i)
+              [{begin_start, begin_length}] = Enum.at(begins, i + 1)
+
+              start_idx = end_start + end_length
+              str_len = begin_start - (end_start + end_length) - 1
+
+              acc <> String.slice(ical_text, start_idx, str_len)
+            end
+          ) <>
+            last_part
+
+        String.replace(new_ical, ~r/\r?\n/, "\r\n")
+      else
+        {:error, "BEGIN/END do not match"}
+      end
+    else
+      ical_text
+    end
+  end
 end

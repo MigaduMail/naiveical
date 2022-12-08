@@ -10,7 +10,7 @@ defmodule Naiveical.ModificatorTest do
           long
         END:VCALENDAR
         """
-        |> String.replace("\r?\n", "\r\n")
+        |> String.replace(~r/\r?\n/, "\r\n")
 
       updated_ical = Naiveical.Modificator.change_value(ical, "summary", "a new summary")
 
@@ -18,6 +18,7 @@ defmodule Naiveical.ModificatorTest do
       expected = {"SUMMARY", "", "a new summary long"}
       assert expected == actual
     end
+
     test "change a description" do
       vtodo =
         """
@@ -52,6 +53,7 @@ defmodule Naiveical.ModificatorTest do
         END:VCALENDAR
         """
         |> String.replace(~r/\r?\n/, "\r\n")
+
       assert expected == actual
     end
 
@@ -70,7 +72,7 @@ defmodule Naiveical.ModificatorTest do
         END:VTODO
         END:VCALENDAR
         """
-        |> String.replace("\r?\n", "\r\n")
+        |> String.replace(~r/\r?\n/, "\r\n")
 
       updated_vtodo = Naiveical.Modificator.change_value(vtodo, "summary", "a new summary")
 
@@ -125,6 +127,7 @@ defmodule Naiveical.ModificatorTest do
       valarm = Naiveical.Creator.create_valarm("call the ring", "-PT15M")
 
       {:ok, actual} = Naiveical.Modificator.insert_into(ical_text, valarm, "VTODO")
+
       expected =
         """
         BEGIN:VCALENDAR
@@ -145,6 +148,39 @@ defmodule Naiveical.ModificatorTest do
         END:VCALENDAR
         """
         |> String.replace(~r/\r?\n/, "\r\n")
+
+      assert expected == actual
+    end
+  end
+
+  describe "Delete" do
+    test "simple deletion" do
+      ical =
+        """
+        BEGIN:VCALENDAR
+        BEGIN:VTODO
+        END:VTODO
+        BEGIN:other
+        END:other
+        BEGIN:VTODO
+        END:VTODO
+        BEGIN:VTODO
+        END:VTODO
+        END:VCALENDAR
+        """
+        |> String.replace(~r/\r?\n/, "\r\n")
+
+      expected =
+        """
+        BEGIN:VCALENDAR
+        BEGIN:other
+        END:other
+        END:VCALENDAR
+        """
+        |> String.replace(~r/\r?\n/, "\r\n")
+
+      actual = Naiveical.Modificator.delete_all(ical, "VTODO")
+
       assert expected == actual
     end
   end
