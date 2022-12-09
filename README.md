@@ -16,7 +16,7 @@ by adding `naiveical` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:naiveical, "~> 0.1.0"}
+    {:naiveical, "~> 0.1.1"}
   ]
 end
 ```
