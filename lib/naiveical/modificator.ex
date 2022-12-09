@@ -128,12 +128,19 @@ defmodule Naiveical.Modificator do
           ) <>
             last_part
 
-        String.replace(new_ical, ~r/\r?\n/, "\r\n")
+        {:ok, String.replace(new_ical, ~r/\r?\n/, "\r\n")}
       else
         {:error, "BEGIN/END do not match"}
       end
     else
-      ical_text
+      {:ok, ical_text}
+    end
+  end
+
+  def delete_all!(ical_text, tag) do
+    case delete_all(ical_text, tag) do
+      {:ok, res} -> res
+      {:error, reason} -> raise(reason)
     end
   end
 end
