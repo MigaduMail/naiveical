@@ -2,6 +2,7 @@ defmodule Naiveical.Helpers do
   @moduledoc """
   Some helper functions.
   """
+  @datetime_format_str "{YYYY}{0M}{0D}T{h24}{m}Z"
 
   @doc """
   Splits a long line into several lines starting with a space.
@@ -45,5 +46,12 @@ defmodule Naiveical.Helpers do
     end)
     |> Enum.reverse()
     |> Enum.join()
+  end
+
+  @doc """
+  Parse a timedate text into DateTime.
+  """
+  def parse_datetime(datetime_str) do
+    Timex.parse!(datetime_str, @datetime_format_str)
   end
 end
