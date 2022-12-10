@@ -62,7 +62,7 @@ defmodule Naiveical.Modificator do
   @doc """
   Inserts another element (or any text) into the ical_text just before the ending of the element.
   """
-  def insert_into(ical_text, new_content, element) do
+  def insert_into(ical_text, new_content, element, opts \\ []) do
     # normalize new element, add newlines if needed
     new_content =
       if String.match?(new_content, ~r/.*\r?\n/) do
@@ -73,13 +73,24 @@ defmodule Naiveical.Modificator do
       |> String.replace(~r/\r?\n/, "\r\n")
 
     if String.contains?(ical_text, "END:#{element}") do
-      {:ok, regex} = Regex.compile("END:#{element}")
+      {:ok, regex} =
+        if opts[:at] == :beginning do
+          Regex.compile("BEGIN:#{element}")
+        else
+          Regex.compile("END:#{element}")
+        end
 
       [{start_idx, str_len}] =
         Regex.run(regex, String.replace(ical_text, "\r\n", "\n"), return: :index)
 
-      ics_before = String.slice(ical_text, 0, start_idx)
-      ics_after = String.slice(ical_text, start_idx, String.length(ical_text))
+      {ics_before, ics_after} =
+        if opts[:at] == :beginning do
+          {String.slice(ical_text, 0, start_idx + str_len + 1),
+           String.slice(ical_text, start_idx + str_len + 1, String.length(ical_text))}
+        else
+          {String.slice(ical_text, 0, start_idx),
+           String.slice(ical_text, start_idx, String.length(ical_text))}
+        end
 
       {:ok,
        (ics_before <> "#{new_content}" <> ics_after)
@@ -142,5 +153,31 @@ defmodule Naiveical.Modificator do
       {:ok, res} -> res
       {:error, reason} -> raise(reason)
     end
+  end
+
+  def add_timezone_info(ical_text) do
+    # find all timezone informations
+    timezones = Regex.scan(~r/TZID=(.*):/, ical_text)
+    IO.inspect(timezones)
+    # collect all timezone info
+    timezones =
+      Enum.reduce(timezones, "", fn [_, tzid], acc ->
+        IO.puts(tzid)
+        tz = File.read!("priv/zoneinfo/#{tzid}.ics")
+
+        tz =
+          Naiveical.Extractor.extract_sections_by_tag(tz, "VTIMEZONE")
+          |> Enum.at(0)
+
+        IO.inspect(tz: tz)
+
+        if String.length(acc) == 0 do
+          tz
+        else
+          acc <> "\r\n" <> tz
+        end
+      end)
+
+    insert_into(ical_text, timezones, "VCALENDAR", at: :beginning)
   end
 end
