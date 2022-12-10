@@ -56,16 +56,24 @@ Assemble all together:
       {:ok, ical} = Naiveical.Modificator.insert_into(ical, todo, "VCALENDAR")
 ```
 
+Extract the summary content line:
+
+``` elixir
+  Naiveical.Extractor.extract_contentline_by_tag(ical, "SUMMARY")
+  {_tag, _attr, due_str} = Naiveical.Extractor.extract_contentline_by_tag(ical, "DUE")
+  Naiveical.Helpers.parse_datetime(due_str)
+```
+
 Change the summary:
 
 ``` elixir
-      valarms = Naiveical.Extractor.extract_sections_by_tag(ical, "VALARM")
+      updated_ical = Naiveical.Modificator.change_value(ical, "summary", "my updated summary")
 ```
 
 Extract the alerts:
 
 ``` elixir
-      updated_ical = Naiveical.Modificator.change_value(ical, "summary", "my updated summary")
+      valarms = Naiveical.Extractor.extract_sections_by_tag(ical, "VALARM")
 ```
 
 ## VTIMEZONE database

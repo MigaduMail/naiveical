@@ -17,6 +17,7 @@ defmodule Naiveical.Extractor do
 
   """
   def extract_sections_by_tag(ical_text, tag) do
+    ical_text = String.replace(ical_text, "\r\n", "\n")
     {:ok, regex} = Regex.compile("BEGIN:#{tag}")
     startings = Regex.scan(regex, ical_text, return: :index)
     {:ok, regex} = Regex.compile("END:#{tag}")
@@ -28,7 +29,10 @@ defmodule Naiveical.Extractor do
     Enum.map(0..(length(startings) - 1), fn idx ->
       [{s, _len}] = Enum.at(startings, idx)
       [{e, len}] = Enum.at(endings, idx)
+
       String.slice(ical_text, s, e - s + len)
+      |> String.replace(~r/\r?\n/, "\r\n")
+      |> String.trim()
     end)
   end
 
