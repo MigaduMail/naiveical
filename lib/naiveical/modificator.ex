@@ -42,7 +42,7 @@ defmodule Naiveical.Modificator do
   def change_value(
         ical_text,
         tag,
-        datetime = %DateTime{
+        %DateTime{
           year: year,
           month: month,
           day: day,
@@ -54,7 +54,7 @@ defmodule Naiveical.Modificator do
           utc_offset: utc_offset,
           std_offset: std_offset,
           time_zone: time_zone
-        }
+        } = datetime
       ) do
     change_value_txt(ical_text, tag, Timex.format(datetime, "{ISO:Basic:Z}"))
   end
@@ -158,18 +158,14 @@ defmodule Naiveical.Modificator do
   def add_timezone_info(ical_text) do
     # find all timezone informations
     timezones = Regex.scan(~r/TZID=(.*):/, ical_text) |> Enum.uniq()
-    IO.inspect(timezones)
     # collect all timezone info
     timezones =
       Enum.reduce(timezones, "", fn [_, tzid], acc ->
-        IO.puts(tzid)
         tz = File.read!("priv/zoneinfo/#{tzid}.ics")
 
         tz =
           Naiveical.Extractor.extract_sections_by_tag(tz, "VTIMEZONE")
           |> Enum.at(0)
-
-        IO.inspect(tz: tz)
 
         if String.length(acc) == 0 do
           tz
