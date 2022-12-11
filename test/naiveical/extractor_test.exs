@@ -76,4 +76,34 @@ defmodule Naiveical.ExtractorTest do
       assert actual == expected
     end
   end
+
+  describe "extract attributes" do
+    test "no such attribute" do
+      attribute_list_str = "A=B;C=D"
+      actual = Naiveical.Extractor.extract_attribute(attribute_list_str, "SOMETHING")
+      expected = nil
+      assert actual == expected
+    end
+
+    test "empty attribute" do
+      attribute_list_str = ""
+      actual = Naiveical.Extractor.extract_attribute(attribute_list_str, "VALUE")
+      expected = nil
+      assert actual == expected
+    end
+
+    test "single attribute" do
+      attribute_list_str = "VALUE=DATE-TIME"
+      actual = Naiveical.Extractor.extract_attribute(attribute_list_str, "VALUE")
+      expected = "DATE-TIME"
+      assert actual == expected
+    end
+
+    test "multiple attributes" do
+      attribute_list_str = "VALUE=DATE-TIME;OTHER=WHATEVER"
+      actual = Naiveical.Extractor.extract_attribute(attribute_list_str, "OTHER")
+      expected = "WHATEVER"
+      assert actual == expected
+    end
+  end
 end

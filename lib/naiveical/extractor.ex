@@ -58,4 +58,23 @@ defmodule Naiveical.Extractor do
       nil
     end
   end
+
+  @doc """
+  Extracts a specific attribute from a list of attributes.
+  """
+  def extract_attribute(attribute_list_str, attr) do
+    if String.contains?(attribute_list_str, attr) do
+      attribute_list_str
+      |> String.split(";")
+      |> Enum.filter(fn x ->
+        [name, value] = String.split(x, "=")
+        name == attr
+      end)
+      |> List.first()
+      |> String.split("=")
+      |> List.last()
+    else
+      nil
+    end
+  end
 end
