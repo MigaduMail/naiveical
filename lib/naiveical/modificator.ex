@@ -157,7 +157,7 @@ defmodule Naiveical.Modificator do
 
   def add_timezone_info(ical_text) do
     # find all timezone informations
-    timezones = Regex.scan(~r/TZID=(.*):/, ical_text)
+    timezones = Regex.scan(~r/TZID=(.*):/, ical_text) |> Enum.uniq()
     IO.inspect(timezones)
     # collect all timezone info
     timezones =
