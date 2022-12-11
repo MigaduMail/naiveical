@@ -2,7 +2,6 @@ defmodule Naiveical.Helpers do
   @moduledoc """
   Some helper functions.
   """
-  @datetime_format_str "{YYYY}{0M}{0D}T{h24}{m}Z"
 
   @doc """
   Splits a long line into several lines starting with a space.
@@ -52,6 +51,24 @@ defmodule Naiveical.Helpers do
   Parse a timedate text into DateTime.
   """
   def parse_datetime(datetime_str) do
-    Timex.parse!(datetime_str, @datetime_format_str)
+    datetime_format_str = "{YYYY}{0M}{0D}T{h24}{m}{s}Z"
+
+    case Timex.parse(datetime_str, datetime_format_str) do
+      {:ok, datetime} -> DateTime.from_naive!(datetime, "Etc/UTC")
+      _ -> raise ArgumentError, "could not parse #{datetime_str} into #{datetime_format_str}"
+    end
+  end
+
+  def parse_datetime(datetime_str, timezone) do
+    if is_nil(timezone) or String.length(timezone) == 0 do
+      parse_datetime(datetime_str)
+    else
+      datetime_format_str = "{YYYY}{0M}{0D}T{h24}{m}{s}"
+
+      case Timex.parse(datetime_str, datetime_format_str) do
+        {:ok, datetime} -> DateTime.from_naive!(datetime, timezone)
+        _ -> raise ArgumentError, "could not parse #{datetime_str} into #{datetime_format_str}"
+      end
+    end
   end
 end
