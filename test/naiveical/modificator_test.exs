@@ -171,15 +171,41 @@ defmodule Naiveical.ModificatorTest do
         |> String.replace(~r/\r?\n/, "\r\n")
 
       expected =
+        {:ok,
+         """
+         BEGIN:VCALENDAR
+         BEGIN:other
+         END:other
+         END:VCALENDAR
+         """
+         |> String.replace(~r/\r?\n/, "\r\n")}
+
+      actual = Naiveical.Modificator.delete_all(ical, "VTODO")
+
+      assert expected == actual
+    end
+  end
+
+  describe "Add timezone" do
+    test "simple timezone" do
+      ical =
         """
         BEGIN:VCALENDAR
-        BEGIN:other
-        END:other
+        BEGIN:VEVENT
+        DTSTART;TZID=Europe/Berlin:20210422T150000
+        END:VEVENT
+        BEGIN:VEVENT
+        DTSTART;TZID=Europe/Zurich:20221121T114500
+        END:VEVENT
         END:VCALENDAR
         """
         |> String.replace(~r/\r?\n/, "\r\n")
 
-      actual = Naiveical.Modificator.delete_all(ical, "VTODO")
+      expected =
+        {:ok,
+         "BEGIN:VCALENDAR\r\nBEGIN:VTIMEZONE\r\nTZID:/citadel.org/20221124_1/Europe/Berlin\r\nLAST-MODIFIED:20221124T144419Z\r\nX-LIC-LOCATION:Europe/Berlin\r\nBEGIN:DAYLIGHT\r\nTZNAME:CEST\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0200\r\nDTSTART:19700329T020000\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nTZNAME:CET\r\nTZOFFSETFROM:+0200\r\nTZOFFSETTO:+0100\r\nDTSTART:19701025T030000\r\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\nEND:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VTIMEZONE\r\nTZID:/citadel.org/20221124_1/Europe/Zurich\r\nLAST-MODIFIED:20221124T144419Z\r\nX-LIC-LOCATION:Europe/Zurich\r\nBEGIN:DAYLIGHT\r\nTZNAME:CEST\r\nTZOFFSETFROM:+0100\r\nTZOFFSETTO:+0200\r\nDTSTART:19700329T020000\r\nRRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU\r\nEND:DAYLIGHT\r\nBEGIN:STANDARD\r\nTZNAME:CET\r\nTZOFFSETFROM:+0200\r\nTZOFFSETTO:+0100\r\nDTSTART:19701025T030000\r\nRRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU\r\nEND:STANDARD\r\nEND:VTIMEZONEBEGIN:VEVENT\r\nDTSTART;TZID=Europe/Berlin:20210422T150000\r\nEND:VEVENT\r\nBEGIN:VEVENT\r\nDTSTART;TZID=Europe/Zurich:20221121T114500\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"}
+
+      actual = Naiveical.Modificator.add_timezone_info(ical)
 
       assert expected == actual
     end
