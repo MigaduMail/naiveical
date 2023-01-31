@@ -106,4 +106,16 @@ defmodule Naiveical.ExtractorTest do
       assert actual == expected
     end
   end
+
+  describe "extract datetime contentline" do
+    test "simple datetime" do
+      ical = """
+      TRIGGER;VALUE=DATE-TIME:20220816T100000Z
+      """
+
+      actual = Naiveical.Extractor.extract_datetime_contentline_by_tag!(ical, "TRIGGER")
+      expected = ~U[2022-08-16 10:00:00Z]
+      assert actual == expected
+    end
+  end
 end
