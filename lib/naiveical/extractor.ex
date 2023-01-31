@@ -37,7 +37,7 @@ defmodule Naiveical.Extractor do
   end
 
   @doc """
-  Extract a single content line from an icalendar text. It returns a tuple with `{tag-name, properties, value}`.
+  Extract a single content line from an icalendar text split into tag, properties, and values. It returns a tuple with `{tag-name, properties, value}`.
 
     ## Examples:
 
@@ -47,17 +47,45 @@ defmodule Naiveical.Extractor do
   iex> Naiveical.Extractor.extract_contentline_by_tag("BEGIN:XX\\nBEGIN:YY\\nA:aa\\nB:bb\\nEND:YY\\nBEGIN:YY\\nC:cc\\nD:dd\\nEND:YY\\nEND:XX", "ZZZ")
   {"ZZZ","",nil}
   """
+  def extract_contentline_by_tag(nil, tag), do: {tag, "", nil}
+
   def extract_contentline_by_tag(ical_text, tag) do
     tag = String.upcase(tag)
 
     if String.contains?(ical_text, tag) do
-      {:ok, regex} = Regex.compile("^#{tag}[;]?(.*):(.*)$", [:multiline])
       ical_text = Helpers.unfold(ical_text)
-
+      {:ok, regex} = Regex.compile("^#{tag}[;]?(.*):(.*)$", [:multiline])
       [_, properties, values] = Regex.run(regex, ical_text)
-      {tag, String.trim(properties), String.trim(values)}
+      values = values |>String.replace("\\n", " ") |> String.trim
+      {tag, String.trim(properties), values}
     else
       {tag, "", nil}
+    end
+  end
+
+  @doc """
+  Extract a raw single content line from an icalendar text.
+
+    ## Examples:
+
+  iex> Naiveical.Extractor.extract_raw_contentline_by_tag("BEGIN:XX\\nBEGIN:YY\\nA;xx:aa\\nB:bb\\nEND:YY\\nBEGIN:YY\\nC:cc\\nD:dd\\nEND:YY\\nEND:XX", "A")
+  "A;xx:aa"
+
+  iex> Naiveical.Extractor.extract_raw_contentline_by_tag("BEGIN:XX\\nBEGIN:YY\\nA:aa\\nB:bb\\nEND:YY\\nBEGIN:YY\\nC:cc\\nD:dd\\nEND:YY\\nEND:XX", "ZZZ")
+  nil
+  """
+  def extract_raw_contentline_by_tag(nil, _tag), do: nil
+
+  def extract_raw_contentline_by_tag(ical_text, tag) do
+    tag = String.upcase(tag)
+
+    if String.contains?(ical_text, tag) do
+      ical_text = Helpers.unfold(ical_text)
+      {:ok, regex} = Regex.compile("^#{tag}[;]?.*:.*$", [:multiline])
+      [res] = Regex.run(regex, ical_text)
+      res |>String.replace("\\n", " ") |> String.trim
+    else
+      nil
     end
   end
 
@@ -76,7 +104,12 @@ defmodule Naiveical.Extractor do
     {_tag, attrs, dtstart_str} = Naiveical.Extractor.extract_contentline_by_tag(ical_text, tag)
 
     tzid = Naiveical.Extractor.extract_attribute(attrs, "TZID")
-    Naiveical.Helpers.parse_datetime(dtstart_str, tzid)
+
+    if is_nil(tzid) do
+      Naiveical.Helpers.parse_datetime(dtstart_str)
+    else
+      Naiveical.Helpers.parse_datetime(dtstart_str, tzid)
+    end
   end
 
   @doc """
@@ -87,7 +120,7 @@ defmodule Naiveical.Extractor do
       attribute_list_str
       |> String.split(";")
       |> Enum.filter(fn x ->
-        [name, value] = String.split(x, "=")
+        [name, _value] = String.split(x, "=")
         name == attr
       end)
       |> List.first()
