@@ -47,34 +47,52 @@ defmodule Naiveical.Extractor do
   iex> Naiveical.Extractor.remove_sections_by_tag("BEGIN:XX\\nBEGIN:YY\\nA:aa\\nB:bb\\nEND:YY\\naaaa:bbbb\\nBEGIN:YY\\nC:cc\\nD:dd\\nEND:YY\\nEND:XX", "YY")
   "BEGIN:XX\\naaaa:bbbb\\nEND:XX"
 
+  iex> Naiveical.Extractor.remove_sections_by_tag("BEGIN:XX\\nBEGIN:YY\\nA:aa\\nB:bb\\nEND:YY\\nEND:XX", "YY")
+  "BEGIN:XX\\nEND:XX"
+
+  iex> Naiveical.Extractor.remove_sections_by_tag("BEGIN:XX\\nBEGIN:YY\\nA:aa\\nB:bb\\nEND:YY\\naaaa:bbbb\\nBEGIN:YY\\nC:cc\\nD:dd\\nEND:YY\\nEND:XX", "NOTEXIST")
+  "BEGIN:XX\\nBEGIN:YY\\nA:aa\\nB:bb\\nEND:YY\\naaaa:bbbb\\nBEGIN:YY\\nC:cc\\nD:dd\\nEND:YY\\nEND:XX"
   """
   def remove_sections_by_tag(ical_text, tag) do
-    ical_text = String.replace(ical_text, "\r\n", "\n")
-    {:ok, regex} = Regex.compile("BEGIN:#{tag}")
-    startings = Regex.scan(regex, ical_text, return: :index)
-    {:ok, regex} = Regex.compile("END:#{tag}")
-    endings = Regex.scan(regex, ical_text, return: :index)
+    if String.contains?(ical_text, tag) do
+      ical_text = String.replace(ical_text, "\r\n", "\n")
+      {:ok, regex} = Regex.compile("BEGIN:#{tag}")
+      startings = Regex.scan(regex, ical_text, return: :index)
+      {:ok, regex} = Regex.compile("END:#{tag}")
+      endings = Regex.scan(regex, ical_text, return: :index)
 
-    if length(startings) != length(endings),
-      do: raise("No correct ical file, no matchin BEGIN/END for #{tag}")
+      if length(startings) != length(endings),
+        do: raise("No correct ical file, no matchin BEGIN/END for #{tag}")
 
-    [{s, _len}] = Enum.at(startings, 0)
-    start_acc = String.slice(ical_text, 0, s)
-    [{last_e, last_e_len}] = Enum.at(endings, -1)
-    end_acc = String.slice(ical_text, (last_e + last_e_len)..-1)
+      [{s, _len}] = Enum.at(startings, 0)
+      start_acc = String.slice(ical_text, 0, s)
+      [{last_e, last_e_len}] = Enum.at(endings, -1)
+      end_acc = String.slice(ical_text, (last_e + last_e_len)..-1)
 
-    (Enum.reduce(0..(length(startings) - 2), start_acc, fn idx, acc ->
-       [{s, s_len}] = Enum.at(startings, idx + 1)
-       [{e, e_len}] = Enum.at(endings, idx)
+      if length(startings) < 2 do
+        [{s, s_len}] = Enum.at(startings, 0)
+        [{e, e_len}] = Enum.at(endings, 0)
 
-       from = e - 0 + e_len
-       to = s - 1
+        (String.slice(ical_text, 0..(s - 1)) <> String.slice(ical_text, (e + e_len)..-1))
+        |> String.replace(~r/(\r?\n)+/, "\\1")
+      else
+        # |> String.replace(~r/\r?\n/, "\r\n")
+        res =
+          (Enum.reduce(0..(length(startings) - 2), start_acc, fn idx, acc ->
+             [{s, s_len}] = Enum.at(startings, idx + 1)
+             [{e, e_len}] = Enum.at(endings, idx)
 
-       (acc <> String.slice(ical_text, from..to))
-       |> String.replace(~r/\r?\n/, "\r\n")
-       |> String.trim()
-     end) <> end_acc)
-    |> String.replace(~r/(\\n)+/, "\\n")
+             from = e + e_len
+             to = s - 1
+
+             (acc <> String.slice(ical_text, from..to))
+             |> String.trim()
+           end) <> end_acc)
+          |> String.replace(~r/(\r?\n)+/, "\\1")
+      end
+    else
+      ical_text
+    end
   end
 
   @doc """
