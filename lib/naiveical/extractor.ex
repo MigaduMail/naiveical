@@ -37,6 +37,47 @@ defmodule Naiveical.Extractor do
   end
 
   @doc """
+  Remove sections of an icalender text, such as remove all VALARMs from a VEVENT.
+
+  The reason of this is to allow the correct extraction of the content lines. If, for example, a VEVENT also contains a VALARM with a description, but the
+  VEVENT does not contain a description, the function extract_contentline_by_tag would fetch the description of the VALARM instead of returning nil.
+
+    ## Examples:
+
+  iex> Naiveical.Extractor.remove_sections_by_tag("BEGIN:XX\\nBEGIN:YY\\nA:aa\\nB:bb\\nEND:YY\\naaaa:bbbb\\nBEGIN:YY\\nC:cc\\nD:dd\\nEND:YY\\nEND:XX", "YY")
+  "BEGIN:XX\\naaaa:bbbb\\nEND:XX"
+
+  """
+  def remove_sections_by_tag(ical_text, tag) do
+    ical_text = String.replace(ical_text, "\r\n", "\n")
+    {:ok, regex} = Regex.compile("BEGIN:#{tag}")
+    startings = Regex.scan(regex, ical_text, return: :index)
+    {:ok, regex} = Regex.compile("END:#{tag}")
+    endings = Regex.scan(regex, ical_text, return: :index)
+
+    if length(startings) != length(endings),
+      do: raise("No correct ical file, no matchin BEGIN/END for #{tag}")
+
+    [{s, _len}] = Enum.at(startings, 0)
+    start_acc = String.slice(ical_text, 0, s)
+    [{last_e, last_e_len}] = Enum.at(endings, -1)
+    end_acc = String.slice(ical_text, (last_e + last_e_len)..-1)
+
+    (Enum.reduce(0..(length(startings) - 2), start_acc, fn idx, acc ->
+       [{s, s_len}] = Enum.at(startings, idx + 1)
+       [{e, e_len}] = Enum.at(endings, idx)
+
+       from = e - 0 + e_len
+       to = s - 1
+
+       (acc <> String.slice(ical_text, from..to))
+       |> String.replace(~r/\r?\n/, "\r\n")
+       |> String.trim()
+     end) <> end_acc)
+    |> String.replace(~r/(\\n)+/, "\\n")
+  end
+
+  @doc """
   Extract a single content line from an icalendar text split into tag, properties, and values. It returns a tuple with `{tag-name, properties, value}`.
 
     ## Examples:
@@ -56,7 +97,7 @@ defmodule Naiveical.Extractor do
       ical_text = Helpers.unfold(ical_text)
       {:ok, regex} = Regex.compile("^#{tag}[;]?(.*):(.*)$", [:multiline])
       [_, properties, values] = Regex.run(regex, ical_text)
-      values = values |>String.replace("\\n", " ") |> String.trim
+      values = values |> String.replace("\\n", " ") |> String.trim()
       {tag, String.trim(properties), values}
     else
       {tag, "", nil}
@@ -83,7 +124,7 @@ defmodule Naiveical.Extractor do
       ical_text = Helpers.unfold(ical_text)
       {:ok, regex} = Regex.compile("^#{tag}[;]?.*:.*$", [:multiline])
       [res] = Regex.run(regex, ical_text)
-      res |>String.replace("\\n", " ") |> String.trim
+      res |> String.replace("\\n", " ") |> String.trim()
     else
       nil
     end
