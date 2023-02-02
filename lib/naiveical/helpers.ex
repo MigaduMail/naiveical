@@ -53,6 +53,7 @@ defmodule Naiveical.Helpers do
   def parse_datetime(datetime_str) do
     datetime_format_str = "{YYYY}{0M}{0D}T{h24}{m}{s}Z"
     naive_datetime_format_str = "{YYYY}{0M}{0D}T{h24}{m}{s}"
+    date_format_str = "{YYYY}{0M}{0D}"
 
     case Timex.parse(datetime_str, datetime_format_str) do
       {:ok, datetime} ->
@@ -60,8 +61,17 @@ defmodule Naiveical.Helpers do
 
       _ ->
         case Timex.parse(datetime_str, naive_datetime_format_str) do
-          {:ok, datetime} -> datetime
-          _ -> raise ArgumentError, "could not parse #{datetime_str} into #{datetime_format_str}"
+          {:ok, datetime} ->
+            datetime
+
+          _ ->
+            case Timex.parse(datetime_str, date_format_str) do
+              {:ok, date} ->
+                date
+
+              _ ->
+                raise ArgumentError, "could not parse #{datetime_str}"
+            end
         end
     end
   end
