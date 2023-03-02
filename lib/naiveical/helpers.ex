@@ -53,26 +53,26 @@ defmodule Naiveical.Helpers do
   def parse_datetime(datetime_str) do
     datetime_format_str = "{YYYY}{0M}{0D}T{h24}{m}{s}Z"
     naive_datetime_format_str = "{YYYY}{0M}{0D}T{h24}{m}{s}"
-    date_format_str = "{YYYY}{0M}{0D}"
 
     case Timex.parse(datetime_str, datetime_format_str) do
       {:ok, datetime} ->
-        DateTime.from_naive!(datetime, "Etc/UTC")
+        {:ok, DateTime.from_naive!(datetime, "Etc/UTC")}
 
       _ ->
         case Timex.parse(datetime_str, naive_datetime_format_str) do
           {:ok, datetime} ->
-            datetime
+            {:ok, datetime}
 
           _ ->
-            case Timex.parse(datetime_str, date_format_str) do
-              {:ok, date} ->
-                date
-
-              _ ->
-                raise ArgumentError, "could not parse #{datetime_str}"
-            end
+            {:error, "could not parse #{datetime_str}"}
         end
+    end
+  end
+
+  def parse_datetime!(datetime_str) do
+    case parse_datetime(datetime_str) do
+      {:ok, datetime} -> datetime
+      {:error, error} -> raise ArgumentError, error
     end
   end
 
@@ -83,8 +83,58 @@ defmodule Naiveical.Helpers do
       datetime_format_str = "{YYYY}{0M}{0D}T{h24}{m}{s}"
 
       case Timex.parse(datetime_str, datetime_format_str) do
-        {:ok, datetime} -> DateTime.from_naive!(datetime, timezone)
-        _ -> raise ArgumentError, "could not parse #{datetime_str} into #{datetime_format_str}"
+        {:ok, datetime} -> DateTime.from_naive(datetime, timezone)
+      end
+    end
+  end
+
+  def parse_datetime!(datetime_str, timezone) do
+    case parse_datetime(datetime_str, timezone) do
+      {:ok, datetime} -> datetime
+      {:error, error} -> raise ArgumentError, error
+    end
+  end
+
+  @doc """
+  Parse a timedate text into DateTime.
+  """
+  def parse_date!(date_str) do
+    date_format_str = "{YYYY}{0M}{0D}"
+
+    Timex.parse!(date_str, date_format_str)
+  end
+
+  def parse_date(date_str) do
+    IO.puts "_----------------_"
+    IO.inspect date_str: date_str
+
+    date_str =
+      if String.contains?(date_str, "T") do
+        date_str
+        |> String.split("T")
+        |> List.first()
+      else
+        date_str
+      end
+    IO.inspect date_str2: date_str
+
+    date_format_str = "{YYYY}{0M}{0D}"
+
+    case Timex.parse(date_str, date_format_str) do
+      {:ok, parsed_datetime} -> {:ok, NaiveDateTime.to_date(parsed_datetime)}
+      {:error, error} -> {:error, error}
+    end
+  end
+
+  def is_fullday(attributes, datetime_str) do
+    date_format_str = "{YYYY}{0M}{0D}"
+
+    if String.contains?(attributes, "VALUE=DATE") do
+      true
+    else
+      case Timex.parse(datetime_str, date_format_str) do
+        {:ok, datetime} -> true
+        _ -> false
       end
     end
   end
