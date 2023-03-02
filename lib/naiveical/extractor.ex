@@ -26,6 +26,9 @@ defmodule Naiveical.Extractor do
     if length(startings) != length(endings),
       do: raise("No correct ical file, no matchin BEGIN/END for #{tag}")
 
+    case startings do
+      [] -> []
+      _->
     Enum.map(0..(length(startings) - 1), fn idx ->
       [{s, _len}] = Enum.at(startings, idx)
       [{e, len}] = Enum.at(endings, idx)
@@ -34,6 +37,8 @@ defmodule Naiveical.Extractor do
       |> String.replace(~r/\r?\n/, "\r\n")
       |> String.trim()
     end)
+    end
+
   end
 
   @doc """
@@ -147,6 +152,28 @@ defmodule Naiveical.Extractor do
       nil
     end
   end
+  @doc """
+  Extract a single datetime content line from an icalendar text. It returns a the datetime object.
+
+  Basically, it tries to parse the extracted text as a datetime object with the
+  given timezone information
+
+    ## Examples:
+
+  iex> Naiveical.Extractor.extract_datetime_contentline_by_tag("BEGIN:XX\\nBEGIN:YY\\nA:aa\\nB:bb\\nDTSTART;TZID=Europe/Berlin:20210422T150000\\nEND:YY\\nBEGIN:YY\\nC:cc\\nD:dd\\nEND:YY\\nEND:XX", "DTSTART")
+
+  """
+  def extract_datetime_contentline_by_tag(ical_text, tag) do
+    {_tag, attrs, dtstart_str} = Naiveical.Extractor.extract_contentline_by_tag(ical_text, tag)
+
+    tzid = Naiveical.Extractor.extract_attribute(attrs, "TZID")
+
+    if is_nil(tzid) do
+      Naiveical.Helpers.parse_datetime(dtstart_str)
+    else
+      Naiveical.Helpers.parse_datetime(dtstart_str, tzid)
+    end
+  end
 
   @doc """
   Extract a single datetime content line from an icalendar text. It returns a the datetime object.
@@ -160,15 +187,38 @@ defmodule Naiveical.Extractor do
 
   """
   def extract_datetime_contentline_by_tag!(ical_text, tag) do
-    {_tag, attrs, dtstart_str} = Naiveical.Extractor.extract_contentline_by_tag(ical_text, tag)
+    {_tag, attrs, datetime_str} = Naiveical.Extractor.extract_contentline_by_tag(ical_text, tag)
 
     tzid = Naiveical.Extractor.extract_attribute(attrs, "TZID")
 
     if is_nil(tzid) do
-      Naiveical.Helpers.parse_datetime(dtstart_str)
+      Naiveical.Helpers.parse_datetime!(datetime_str)
     else
-      Naiveical.Helpers.parse_datetime(dtstart_str, tzid)
+      Naiveical.Helpers.parse_datetime!(datetime_str, tzid)
     end
+  end
+
+
+  @doc """
+  Extract a single date content line from an icalendar text. It returns a the datetime object.
+
+  Basically, it tries to parse the extracted text as a date object
+
+    ## Examples:
+
+  iex> Naiveical.Extractor.extract_date_contentline_by_tag!("BEGIN:XX\\nBEGIN:YY\\nA:aa\\nB:bb\\nDTSTART;TZID=Europe/Berlin:20210422T150000\\nEND:YY\\nBEGIN:YY\\nC:cc\\nD:dd\\nEND:YY\\nEND:XX", "DTSTART")
+
+  """
+  def extract_date_contentline_by_tag!(ical_text, tag) do
+    {_tag, attrs, date_str} = Naiveical.Extractor.extract_contentline_by_tag(ical_text, tag)
+
+    Naiveical.Helpers.parse_date!(date_str)
+  end
+
+  def extract_date_contentline_by_tag(ical_text, tag) do
+    {_tag, attrs, date_str} = Naiveical.Extractor.extract_contentline_by_tag(ical_text, tag)
+
+    Naiveical.Helpers.parse_date(date_str)
   end
 
   @doc """
