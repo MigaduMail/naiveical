@@ -105,9 +105,6 @@ defmodule Naiveical.Helpers do
   end
 
   def parse_date(date_str) do
-    IO.puts "_----------------_"
-    IO.inspect date_str: date_str
-
     date_str =
       if String.contains?(date_str, "T") do
         date_str
@@ -116,7 +113,6 @@ defmodule Naiveical.Helpers do
       else
         date_str
       end
-    IO.inspect date_str2: date_str
 
     date_format_str = "{YYYY}{0M}{0D}"
 

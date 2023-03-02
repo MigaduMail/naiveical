@@ -27,18 +27,19 @@ defmodule Naiveical.Extractor do
       do: raise("No correct ical file, no matchin BEGIN/END for #{tag}")
 
     case startings do
-      [] -> []
-      _->
-    Enum.map(0..(length(startings) - 1), fn idx ->
-      [{s, _len}] = Enum.at(startings, idx)
-      [{e, len}] = Enum.at(endings, idx)
+      [] ->
+        []
 
-      String.slice(ical_text, s, e - s + len)
-      |> String.replace(~r/\r?\n/, "\r\n")
-      |> String.trim()
-    end)
+      _ ->
+        Enum.map(0..(length(startings) - 1), fn idx ->
+          [{s, _len}] = Enum.at(startings, idx)
+          [{e, len}] = Enum.at(endings, idx)
+
+          String.slice(ical_text, s, e - s + len)
+          |> String.replace(~r/\r?\n/, "\r\n")
+          |> String.trim()
+        end)
     end
-
   end
 
   @doc """
@@ -152,6 +153,7 @@ defmodule Naiveical.Extractor do
       nil
     end
   end
+
   @doc """
   Extract a single datetime content line from an icalendar text. It returns a the datetime object.
 
@@ -197,7 +199,6 @@ defmodule Naiveical.Extractor do
       Naiveical.Helpers.parse_datetime!(datetime_str, tzid)
     end
   end
-
 
   @doc """
   Extract a single date content line from an icalendar text. It returns a the datetime object.
