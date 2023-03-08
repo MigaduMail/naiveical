@@ -120,13 +120,20 @@ defmodule Naiveical.Extractor do
     if String.contains?(ical_text, tag) do
       ical_text = Helpers.unfold(ical_text)
       {:ok, regex} = Regex.compile("^#{tag}[;]?(.*):(.*)$", [:multiline])
-      [_, properties, values] = Regex.run(regex, ical_text)
-      values = values |> String.replace("\\n", " ") |> String.trim()
-      {tag, String.trim(properties), values}
+
+      case Regex.run(regex, ical_text) do
+        [_, properties, values] ->
+          values = values |> String.replace("\\n", " ") |> String.trim()
+          {tag, String.trim(properties), values}
+
+        nil ->
+          {tag, "", nil}
+      end
     else
       {tag, "", nil}
     end
   end
+
 
   @doc """
   Extract a raw single content line from an icalendar text.
