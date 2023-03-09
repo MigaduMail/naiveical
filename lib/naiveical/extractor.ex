@@ -76,16 +76,13 @@ defmodule Naiveical.Extractor do
       end_acc = String.slice(ical_text, (last_e + last_e_len)..-1)
 
       if length(startings) < 2 do
-        [{s, s_len}] = Enum.at(startings, 0)
         [{e, e_len}] = Enum.at(endings, 0)
 
         (String.slice(ical_text, 0..(s - 1)) <> String.slice(ical_text, (e + e_len)..-1))
         |> String.replace(~r/(\r?\n)+/, "\\1")
       else
         # |> String.replace(~r/\r?\n/, "\r\n")
-        res =
           (Enum.reduce(0..(length(startings) - 2), start_acc, fn idx, acc ->
-             [{s, s_len}] = Enum.at(startings, idx + 1)
              [{e, e_len}] = Enum.at(endings, idx)
 
              from = e + e_len
@@ -214,17 +211,17 @@ defmodule Naiveical.Extractor do
 
     ## Examples:
 
-  iex> Naiveical.Extractor.extract_date_contentline_by_tag!("BEGIN:XX\\nBEGIN:YY\\nA:aa\\nB:bb\\nDTSTART;TZID=Europe/Berlin:20210422T150000\\nEND:YY\\nBEGIN:YY\\nC:cc\\nD:dd\\nEND:YY\\nEND:XX", "DTSTART")
+  iex> Naiveical.Extractor.extract_date_contentline_by_tag!("BEGIN:XX\\nBEGIN:YY\\nA:aa\\nB:bb\\nDTSTART;TZID=Europe/Berlin:20210422\\nEND:YY\\nBEGIN:YY\\nC:cc\\nD:dd\\nEND:YY\\nEND:XX", "DTSTART")
 
   """
   def extract_date_contentline_by_tag!(ical_text, tag) do
-    {_tag, attrs, date_str} = Naiveical.Extractor.extract_contentline_by_tag(ical_text, tag)
+    {_tag, _attrs, date_str} = Naiveical.Extractor.extract_contentline_by_tag(ical_text, tag)
 
     Naiveical.Helpers.parse_date!(date_str)
   end
 
   def extract_date_contentline_by_tag(ical_text, tag) do
-    {_tag, attrs, date_str} = Naiveical.Extractor.extract_contentline_by_tag(ical_text, tag)
+    {_tag, _attrs, date_str} = Naiveical.Extractor.extract_contentline_by_tag(ical_text, tag)
 
     Naiveical.Helpers.parse_date(date_str)
   end
