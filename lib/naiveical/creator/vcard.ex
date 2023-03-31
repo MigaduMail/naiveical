@@ -1,4 +1,4 @@
-defmodule Naiveical.Vcard.Creator do
+defmodule Naiveical.Creator.Vcard do
   @moduledoc """
   Module for creating Vcard(vcf) text files.
   """

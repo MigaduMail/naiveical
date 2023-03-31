@@ -1,4 +1,4 @@
-defmodule Naiveical.Creator do
+defmodule Naiveical.Creator.Icalendar do
   @moduledoc """
   Helper functions to create icalender elements.
   """
