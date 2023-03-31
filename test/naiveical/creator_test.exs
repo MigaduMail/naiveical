@@ -51,7 +51,7 @@ defmodule Naiveical.CreatorTest do
         |> String.replace(~r/\r?\n/, "\r\n")
 
       actual =
-        Naiveical.Creator.create_vtodo("Hello world", dtstart, due,
+        Naiveical.Creator.Icalendar.create_vtodo("Hello world", dtstart, due,
           uuid: "123456",
           dtstamp: dtstamp
         )
@@ -72,7 +72,7 @@ defmodule Naiveical.CreatorTest do
         """
         |> String.replace(~r/\r?\n/, "\r\n")
 
-      actual = Naiveical.Creator.create_valarm("Birthday Party", "-PT15M")
+      actual = Naiveical.Creator.Icalendar.create_valarm("Birthday Party", "-PT15M")
 
       assert expected == actual
     end
@@ -90,7 +90,7 @@ defmodule Naiveical.CreatorTest do
 
       trigger = DateTime.new!(~D[2022-12-24], ~T[12:00:00], "Etc/UTC")
 
-      actual = Naiveical.Creator.create_valarm("Birthday Party", trigger)
+      actual = Naiveical.Creator.Icalendar.create_valarm("Birthday Party", trigger)
 
       assert expected == actual
     end

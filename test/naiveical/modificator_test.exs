@@ -124,7 +124,7 @@ defmodule Naiveical.ModificatorTest do
         """
         |> String.replace(~r/\r?\n/, "\r\n")
 
-      valarm = Naiveical.Creator.create_valarm("call the ring", "-PT15M")
+      valarm = Naiveical.Creator.Icalendar.create_valarm("call the ring", "-PT15M")
 
       {:ok, actual} = Naiveical.Modificator.insert_into(ical_text, valarm, "VTODO")
 
