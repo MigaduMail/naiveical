@@ -87,7 +87,7 @@ defmodule Naiveical.Creator.Vcard do
   #
 
   @date_format "{YYYY}{0M}{0D}"
-  @vcard_version "3.0"
+  @vcard_version "4.0"
   @prod_id "-//Migadu-Excalt//"
   @doc """
   Create a simple VCard file.
@@ -98,10 +98,18 @@ defmodule Naiveical.Creator.Vcard do
   @spec create_vcard(opts :: Keyword.t()) :: String.t()
   def create_vcard(opts \\ []) do
     uid = UUID.uuid4()
-    full_name = Keyword.get(opts, :fn, "")
-    emails = get_additional_properties(opts, :email)
-    tel = get_additional_properties(opts, :tel)
-    addresses = get_additional_properties(opts, :addrs)
+    email = Keyword.get(opts, :email, "") |> create_email([])
+    first_name = Keyword.get(opts, :first_name, "")
+    last_name = Keyword.get(opts, :last_name, "")
+    middle_name = Keyword.get(opts, :middle_name, "")
+    prefix = Keyword.get(opts, :prefix, "")
+    suffix = Keyword.get(opts, :suffix, "")
+
+    display_name =
+      Keyword.get(opts, :display_name, "") |> create_display_name(first_name, last_name)
+
+    # tel = get_additional_properties(opts, :tel)
+    addresses = Keyword.get(opts, :address, "") |> create_address([])
     nickname = Keyword.get(opts, :nickname, "")
     title = Keyword.get(opts, :title, "")
     role = Keyword.get(opts, :role, "")
@@ -110,15 +118,17 @@ defmodule Naiveical.Creator.Vcard do
     bday = get_bday(opts)
     kind = Keyword.get(opts, :kind, "")
 
+    name = create_name(prefix, first_name, middle_name, last_name, suffix)
+
     ("""
      BEGIN:VCARD
      VERSION:#{@vcard_version}
      PRODID:#{@prod_id}
      UID:#{uid}
-     FN:#{full_name}
+     FN:#{display_name}
      """ <>
        nickname <>
-       emails <>
+       email <>
        tel <>
        addresses <>
        title <>
@@ -133,58 +143,62 @@ defmodule Naiveical.Creator.Vcard do
     |> String.replace(~r/\r?\n/, "\r\n")
   end
 
-  def get_additional_properties(opts, property, default \\ "")
+  def create_email(value, opts \\ [])
+  def create_email("", []), do: ""
+  def create_email(value, []), do: "EMAIL:#{value}\r\n"
 
-  def get_additional_properties(opts, :email, default) do
-    if Keyword.has_key?(opts, :email) do
-      Keyword.get_values(opts, :email)
-      |> get_emails()
+  def create_email(value, opts) do
+    opts =
+      Enum.reduce(opts, "EMAIL", fn {key, val}, acc ->
+        key = key |> to_string() |> String.upcase()
+        acc <> ";#{key}=#{val}"
+      end)
+
+    opts <> ":#{value}\r\n"
+  end
+
+  def create_display_name(display_name, first_name, last_name)
+
+  def create_display_name("", first_name, last_name) do
+    if first_name != "" or last_name != "" do
+      "#{first_name} #{last_name}"
     else
-      default
+      ""
     end
   end
 
-  def get_additional_properties(opts, :tel, default) do
-    if Keyword.has_key?(opts, :tel) do
-      opts
-      |> Keyword.get_values(:tel)
-      |> get_telephones()
+  def create_display_name(display_name, first_name, last_name) do
+    if display_name != "" do
+      display_name
     else
-      default
+      "#{first_name} #{last_name}"
     end
   end
 
-  def get_additional_properties(opts, :addrs, default) do
-    if Keyword.has_key?(opts, :addrs) do
-      opts
-      |> Keyword.get_values(:addrs)
-      |> get_addresses
-    else
-      default
-    end
-  end
+  def create_address(address, opts \\ [])
+  def create_address("", []), do: ""
+  def create_address(address, []), do: "ADR:;;#{address};;;;"
 
-  def get_additional_properties(opts, :websites, default) do
-    if Keyword.has_key?(opts, :websites) do
-      opts
-      |> Keyword.get_values(:websites)
-      |> get_websites
-    else
-      default
-    end
-  end
-
-  # Expect a list of values, [%{type: "type", value: val}]
-  defp get_emails(emails) do
-    emails
-    |> Enum.map_join(fn %{type: type, value: val} ->
-      # responsibility for validations of the user input should be on the client side.
-      if is_nil(type) do
-        "EMAIL:#{val}\r\n"
-      else
-        "EMAIL;TYPE=#{type}:#{val}\r\n"
+  def create_address(address, opts) do
+    Enum.reduce(opts, "ADR", fn {key, val}, acc ->
+      # this is check whether the key is not an address component
+      if key not in [:street, :city, :region, :postal_code, :country] do
+        key = key |> to_string() |> String.upcase()
+        acc <> ";#{key}=#{val}"
       end
     end)
+    |> add_addresses(address, opts)
+  end
+
+  defp add_addresses(address_comp, address, opts) do
+    # We need to take care of the places for the address component
+    # street;city;region;code;country
+    city = Keyword.get(opts, :city, "")
+    region = Keyword.get(opts, :region, "")
+    postal_code = Keyword.get(opts, :postal_code, "")
+    country = Keyword.get(opts, :country, "")
+
+    "#{address_comp}:;;#{address};#{city};#{region};#{postal_code};#{country}\r\n"
   end
 
   defp get_telephones(tel) do
