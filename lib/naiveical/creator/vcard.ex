@@ -88,22 +88,42 @@ defmodule Naiveical.Creator.Vcard do
     |> String.replace(~r/\r?\n/, "\r\n")
   end
 
+  @doc """
+  Creates NICKNAME, can be random text.
+  """
+  @spec create_nickname(nickname :: String.t(), opts :: List.t()) :: String.t()
   def create_nickname(nickname, opts \\ [])
   def create_nickname("", _), do: ""
   def create_nickname(nickname, _), do: "NICKNAME:#{nickname}\r\n"
 
+  @doc """
+  Creates TITLE, it is most often associated with organization.
+  """
+  @spec create_title(nickname :: String.t(), opts :: List.t()) :: String.t()
   def create_title(title, opts \\ [])
   def create_title("", _), do: ""
   def create_title(title, _), do: "TITLE:#{title}\r\n"
 
+  @doc """
+  Creates ROLE, it is most often associated with organization.
+  """
+  @spec create_role(nickname :: String.t(), opts :: List.t()) :: String.t()
   def create_role(role, opts \\ [])
   def create_role("", _), do: ""
   def create_role(role, _), do: "ROLE:#{role}\r\n"
 
+  @doc """
+  Creates organization.
+  """
+  @spec create_organization(nickname :: String.t(), opts :: List.t()) :: String.t()
   def create_organization(org, opts \\ [])
   def create_organization("", _), do: ""
   def create_organization(org, _), do: "ORG:#{org}\r\n"
 
+  @doc """
+  Creates special dates such as birthdays or anniversary.
+  """
+  @spec create_special_date(nickname :: String.t(), opts :: List.t()) :: String.t()
   def create_special_date(date, type, opts \\ [])
   def create_special_date("", _, _), do: ""
 
@@ -113,6 +133,11 @@ defmodule Naiveical.Creator.Vcard do
     "#{type}:#{date}"
   end
 
+  @doc """
+  Creates a KIND for vcard.
+  Please refer to [RFC Section 6.1.4](https://www.rfc-editor.org/rfc/rfc6350#section-6.1.4)
+  """
+  @spec create_kind(nickname :: String.t(), opts :: List.t()) :: String.t()
   def create_kind(kind, opts \\ [])
   def create_kind("", _), do: ""
 
