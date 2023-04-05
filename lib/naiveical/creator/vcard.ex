@@ -28,64 +28,6 @@ defmodule Naiveical.Creator.Vcard do
   # ADR:;;Address 2;City 2;State 2;159999;Serbia
   # END:VCARD
 
-  ### SOME BASIC FIELDS TO SUPPORT FOR START ###
-
-  # FN consist of PREFIX, FIRSTNAME, MIDDLE NAME, SURNAME, SUFFIX
-
-  # N consist of 4 list-components, e.g. N: PREFIX;Firstname;surname,someval;Middlename;suffix
-
-  # EMAIL: can have more than one on single vcard object, TYPE param can be defined as EMAIL;TYPE=WORK;TYPE=PERSONAL, or as a csv list TYPE="work,personal"
-  # if there are more than one email set, PREF paramater can be used to indicate a preffered email address.
-
-  # TEL: TYPE parameters [text, voice, cell, fax, video, pager, textphone]
-
-  # BDAY: Birtday in simple date format 19930101
-
-  # NOTE: TExt value, if the text is longer than 75 octets, should be folded
-
-  # NICKNAME: Some text value for nickname
-
-  # KIND: Basically the identifier of contact(org, individual, group, location)
-  # E.g if the KIND value is location, VCARD object must contain informations only for that location
-  # it can contain some name, for e.g Zurich, if GEO property is not present, this will be considered as
-  # "abstract" location
-  # For more info https://www.rfc-editor.org/rfc/rfc6350.html#section-6.1.4
-
-  # CATEGORIES: Specify application category information about VCARD (CSV tags)
-
-  # UID: We are responsible for giving the new vcard object UID
-  #
-  # URL: TYPE [work, home], for websites
-  #
-  # ADR: Special notes:  The structured type value consists of a sequence of
-  #    address components.  The component values MUST be specified in
-  #    their corresponding position.  The structured type value
-  #    corresponds, in sequence, to
-  #       the post office box;
-  #       the extended address (e.g., apartment or suite number);
-  #       the street address;
-  #       the locality (e.g., city);
-  #       the region (e.g., state or province);
-  #       the postal code;
-  #       the country name (full name in the language specified in
-  #       Section 5.1).
-
-  #    When a component value is missing, the associated component
-  #    separator MUST still be specified.
-
-  #    Experience with vCard 3 has shown that the first two components
-  #    (post office box and extended address) are plagued with many
-  #    interoperability issues.  To ensure maximal interoperability,
-  #    their values SHOULD be empty.
-
-  #    The text components are separated by the SEMICOLON character
-  #    (U+003B).  Where it makes semantic sense, individual text
-  #    components can include multiple text values (e.g., a "street"
-  #    component with multiple lines) separated by the COMMA character
-  #   (U+002C).
-
-  #
-
   @date_format "{YYYY}{0M}{0D}"
   @vcard_version "4.0"
   @prod_id "-//Migadu-Excalt//"
@@ -98,27 +40,28 @@ defmodule Naiveical.Creator.Vcard do
   @spec create_vcard(opts :: Keyword.t()) :: String.t()
   def create_vcard(opts \\ []) do
     uid = UUID.uuid4()
-    email = Keyword.get(opts, :email, "") |> create_email([])
     first_name = Keyword.get(opts, :first_name, "")
     last_name = Keyword.get(opts, :last_name, "")
     middle_name = Keyword.get(opts, :middle_name, "")
     prefix = Keyword.get(opts, :prefix, "")
     suffix = Keyword.get(opts, :suffix, "")
+    email = Keyword.get(opts, :email, "") |> create_email([])
 
     display_name =
       Keyword.get(opts, :display_name, "") |> create_display_name(first_name, last_name)
 
-    # tel = get_additional_properties(opts, :tel)
+    tel = Keyword.get(opts, :tel, "") |> create_telephone([])
     addresses = Keyword.get(opts, :address, "") |> create_address([])
-    nickname = Keyword.get(opts, :nickname, "")
-    title = Keyword.get(opts, :title, "")
-    role = Keyword.get(opts, :role, "")
-    org = Keyword.get(opts, :org, "")
-    websites = get_additional_properties(opts, :websites)
-    bday = get_bday(opts)
-    kind = Keyword.get(opts, :kind, "")
+    nickname = Keyword.get(opts, :nickname, "") |> create_nickname([])
+    title = Keyword.get(opts, :title, "") |> create_title([])
+    role = Keyword.get(opts, :role, "") |> create_role([])
+    organization = Keyword.get(opts, :organization, "") |> create_organization([])
+    website = Keyword.get(opts, :website, "") |> create_website([])
+    birthday = Keyword.get(opts, :birthday, "") |> create_special_date(:bday, [])
+    anniversary = Keyword.get(opts, :anniversary, "") |> create_special_date(:anniversary, [])
+    kind = Keyword.get(opts, :kind, "") |> create_kind([])
 
-    name = create_name(prefix, first_name, middle_name, last_name, suffix)
+    name = create_full_name(prefix, first_name, middle_name, last_name, suffix)
 
     ("""
      BEGIN:VCARD
@@ -127,15 +70,17 @@ defmodule Naiveical.Creator.Vcard do
      UID:#{uid}
      FN:#{display_name}
      """ <>
-       nickname <>
+       name <>
        email <>
        tel <>
        addresses <>
+       nickname <>
+       organization <>
        title <>
        role <>
-       org <>
-       websites <>
-       bday <>
+       website <>
+       anniversary <>
+       birthday <>
        kind <>
        """
        END:VCARD
@@ -143,52 +88,175 @@ defmodule Naiveical.Creator.Vcard do
     |> String.replace(~r/\r?\n/, "\r\n")
   end
 
-  def create_email(value, opts \\ [])
-  def create_email("", []), do: ""
-  def create_email(value, []), do: "EMAIL:#{value}\r\n"
+  def create_nickname(nickname, opts \\ [])
+  def create_nickname("", _), do: ""
+  def create_nickname(nickname, _), do: "NICKNAME:#{nickname}\r\n"
 
-  def create_email(value, opts) do
-    opts =
+  def create_title(title, opts \\ [])
+  def create_title("", _), do: ""
+  def create_title(title, _), do: "TITLE:#{title}\r\n"
+
+  def create_role(role, opts \\ [])
+  def create_role("", _), do: ""
+  def create_role(role, _), do: "ROLE:#{role}\r\n"
+
+  def create_organization(org, opts \\ [])
+  def create_organization("", _), do: ""
+  def create_organization(org, _), do: "ORG:#{org}\r\n"
+
+  def create_special_date(date, type, opts \\ [])
+  def create_special_date("", _, _), do: ""
+
+  def create_special_date(%Date{} = date, type, []) when not is_nil(date) do
+    date = Timex.format!(date, @date_format)
+    type = upcase_key(type)
+    "#{type}:#{date}"
+  end
+
+  def create_kind(kind, opts \\ [])
+  def create_kind("", _), do: ""
+
+  def create_kind(kind, opts) do
+    params =
+      Enum.reduce(opts, "KIND", fn {key, value}, acc ->
+        key = upcase_key(key)
+        acc <> ";#{key}=#{value}"
+      end)
+
+    params <> ":#{kind}\r\n"
+  end
+
+  @doc """
+  Creates an email to put in VCARD file.
+  Pass a keyword list of params(options) to add params to email address you are creating.
+  Please refer the [RFC 6350 Section 6.4.2](https://www.rfc-editor.org/rfc/rfc6350#section-6.4.2) for more details about the supported params.
+
+  ## Example
+      iex> Naiveical.Creator.Vcard.create_email("email@domain.tld", type: "work", pref: 1, label: "good")
+      EMAIL;TYPE=work;PREF=1;LABEL=good:email@domain.tld
+  """
+  @spec create_email(address :: String.t(), opts :: List.t()) :: String.t()
+  def create_email(address, opts \\ [])
+  def create_email("", []), do: ""
+  def create_email(address, []), do: "EMAIL:#{address}\r\n"
+
+  def create_email(address, opts) do
+    params =
       Enum.reduce(opts, "EMAIL", fn {key, val}, acc ->
-        key = key |> to_string() |> String.upcase()
+        key = upcase_key(key)
         acc <> ";#{key}=#{val}"
       end)
 
-    opts <> ":#{value}\r\n"
+    params <> ":#{address}\r\n"
   end
 
-  def create_display_name(display_name, first_name, last_name)
+  @doc """
+  Creates display name, which is FN property defined by [RFC 6350 Section 6.2.1](https://www.rfc-editor.org/rfc/rfc6350#section-6.2.1)
 
-  def create_display_name("", first_name, last_name) do
-    if first_name != "" or last_name != "" do
-      "#{first_name} #{last_name}"
-    else
-      ""
-    end
-  end
-
-  def create_display_name(display_name, first_name, last_name) do
+  ## Example
+      iex> Naiveical.Creator.Vcard.create_display_name("Display Name")
+      "Display Name"
+  """
+  def create_display_name(display_name \\ "", first_name \\ "", last_name \\ "") do
     if display_name != "" do
       display_name
     else
       "#{first_name} #{last_name}"
     end
+    |> String.trim()
   end
 
+  @doc """
+  Creates address property. Address property has 7 list-components, where first two are ommited.
+  Please refer to [RFC 6350 Section 6.3.1](https://www.rfc-editor.org/rfc/rfc6350#section-6.3.1)
+  """
+  @spec create_address(address :: String.t(), opts :: List.t()) :: String.t()
   def create_address(address, opts \\ [])
   def create_address("", []), do: ""
-  def create_address(address, []), do: "ADR:;;#{address};;;;"
+  def create_address(address, []), do: "ADR:;;#{address};;;;\r\n"
 
   def create_address(address, opts) do
     Enum.reduce(opts, "ADR", fn {key, val}, acc ->
       # this is check whether the key is not an address component
       if key not in [:street, :city, :region, :postal_code, :country] do
-        key = key |> to_string() |> String.upcase()
+        key = upcase_key(key)
         acc <> ";#{key}=#{val}"
       end
     end)
     |> add_addresses(address, opts)
   end
+
+  def create_website(url, opts \\ [])
+  def create_website("", []), do: ""
+  def create_website(url, []), do: "URL:#{url}\r\n"
+
+  def create_website(url, opts) do
+    params =
+      Enum.reduce(opts, "URL", fn {key, value}, acc ->
+        key = upcase_key(key)
+        acc <> ";#{key}=#{value}"
+      end)
+
+    params <> ":#{url}\r\n"
+  end
+
+  @doc """
+  Creates a full name for VCARD.
+  N property consist of 5 list-components.
+  N:PREFIX;FIRSTNAME;MIDDLENAME;LASTNAME;SUFFIX
+  Reference[RFC Idenitification Properties N SECTION 6.2.2](https://www.rfc-editor.org/rfc/rfc6350#section-6.2.2)
+  ## Example
+      iex> Naiveical.Creator.Vcard.create_full_name("", "User", "Middle", "Surname", "", value: "text")
+      N;VALUE=text:;User;Middle;Surname;;
+  """
+  @spec create_full_name(
+          prefix :: String.t(),
+          first_name :: String.t(),
+          middle_name :: String.t(),
+          last_name :: String.t(),
+          suffix :: String.t(),
+          opts :: List.t()
+        ) :: String.t()
+  def create_full_name(prefix, first_name, middle_name, last_name, suffix, opts \\ [])
+
+  def create_full_name(prefix, first_name, middle_name, last_name, suffix, []) do
+    full_name = construct_full_name(prefix, first_name, middle_name, last_name, suffix)
+    "N" <> full_name
+  end
+
+  def create_full_name(prefix, first_name, middle_name, last_name, suffix, opts) do
+    params =
+      Enum.reduce(opts, "N", fn {key, value}, acc ->
+        key = upcase_key(key)
+        acc <> ";#{key}=#{value}"
+      end)
+
+    params <> construct_full_name(prefix, first_name, middle_name, last_name, suffix)
+  end
+
+  @doc """
+  Creates telephone property for VCARD.
+  Reference [RFC Section 6.4.1](https://www.rfc-editor.org/rfc/rfc6350#section-6.4.1)
+  ## Example
+      iex> Naiveical.Creator.Vcard.create_telephone("1234567890", type: "work", pref: 1)
+      TEL;TYPE=work;PREF=1:1234567890
+  """
+  @spec create_telephone(tel :: String.t(), opts :: List.t()) :: String.t()
+  def create_telephone(tel, opts \\ [])
+  def create_telephone("", _), do: ""
+  def create_telephone(tel, []), do: "TEL:#{tel}\r\n"
+
+  def create_telephone(tel, opts) do
+    params =
+      Enum.reduce(opts, "TEL", fn {key, value}, acc ->
+        key = upcase_key(key)
+        acc <> ";#{key}=#{value}"
+      end)
+
+    params <> ":#{tel}\r\n"
+  end
+
+  ### Helpers for creation functions. ###
 
   defp add_addresses(address_comp, address, opts) do
     # We need to take care of the places for the address component
@@ -201,71 +269,13 @@ defmodule Naiveical.Creator.Vcard do
     "#{address_comp}:;;#{address};#{city};#{region};#{postal_code};#{country}\r\n"
   end
 
-  defp get_telephones(tel) do
-    tel
-    |> Enum.map_join(fn %{type: type, value: val} ->
-      if is_nil(type) do
-        "TEL:#{val}\r\n"
-      else
-        "TEL;TYPE=#{type}:#{val}\r\n"
-      end
-    end)
+  defp construct_full_name(prefix, first_name, middle_name, last_name, suffix) do
+    ":#{prefix};#{first_name};#{middle_name};#{last_name};#{suffix}\r\n"
   end
 
-  defp get_websites(websites) do
-    websites
-    |> Enum.map_join(fn %{type: type, value: val} ->
-      if is_nil(type) do
-        "URL:#{val}"
-      else
-        "URL;TYPE=#{type}:#{val}"
-      end
-    end)
+  defp upcase_key(key) do
+    key
+    |> to_string()
+    |> String.upcase()
   end
-
-  defp get_bday(opts) do
-    value = Keyword.get(opts, :bday, nil)
-
-    if is_nil(value) do
-      ""
-    else
-      value = Timex.format!(value, @date_format)
-      "BDAY;VALUE=DATE:#{value}"
-    end
-  end
-
-  defp get_addresses(addresses) do
-    addresses
-    |> Enum.map_join(fn %{
-                          type: type
-                        } = c ->
-      comp = make_single_address_comp(c)
-
-      if is_nil(type) do
-        "ADR:;;#{comp}"
-      else
-        "ADR;TYPE=#{type};;#{comp}"
-      end
-    end)
-  end
-
-  #  %{type: type, street: street, city: city, region: region, zip_code: zip_code, country: country}
-  defp make_single_address_comp(c) do
-    street = Map.get(c, :street, nil)
-    city = Map.get(c, :city, nil)
-    region = Map.get(c, :region, nil)
-    zip_code = Map.get(c, :zip_code, nil)
-    country = Map.get(c, :country, nil)
-
-    [street, city, region, zip_code, country]
-    |> Enum.map_join(fn c ->
-      if is_nil(c) do
-        ";"
-      else
-        "#{c};"
-      end
-    end)
-  end
-
-  # By rfc first two components in ADR propery are ommited.
 end
