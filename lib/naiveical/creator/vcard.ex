@@ -38,14 +38,14 @@ defmodule Naiveical.Creator.Vcard do
   version and product ID will be overwritten by server itself.
   """
   @spec create_vcard(opts :: Keyword.t()) :: String.t()
-  def create_vcard(opts \\ []) do
-    uid = UUID.uuid4()
+  def create_vcard(uuid, opts \\ []) do
     first_name = Keyword.get(opts, :first_name, "")
     last_name = Keyword.get(opts, :last_name, "")
     middle_name = Keyword.get(opts, :middle_name, "")
     prefix = Keyword.get(opts, :prefix, "")
     suffix = Keyword.get(opts, :suffix, "")
     email = Keyword.get(opts, :email, "") |> create_email([])
+    note = Keyword.get(opts, :note, "") |> create_note([])
 
     display_name =
       Keyword.get(opts, :display_name, "") |> create_display_name(first_name, last_name)
@@ -60,14 +60,14 @@ defmodule Naiveical.Creator.Vcard do
     birthday = Keyword.get(opts, :birthday, "") |> create_special_date(:bday, [])
     anniversary = Keyword.get(opts, :anniversary, "") |> create_special_date(:anniversary, [])
     kind = Keyword.get(opts, :kind, "") |> create_kind([])
-
+    categories = Keyword.get(opts, :categories, "") |> create_categories([])
     name = create_full_name(prefix, first_name, middle_name, last_name, suffix)
 
     ("""
      BEGIN:VCARD
      VERSION:#{@vcard_version}
      PRODID:#{@prod_id}
-     UID:#{uid}
+     UID:#{uuid}
      FN:#{display_name}
      """ <>
        name <>
@@ -81,11 +81,60 @@ defmodule Naiveical.Creator.Vcard do
        website <>
        anniversary <>
        birthday <>
+       note <>
+       categories <>
        kind <>
        """
        END:VCARD
        """)
     |> String.replace(~r/\r?\n/, "\r\n")
+  end
+
+  @doc """
+  Creates catagories, also know as tags. Categories are comma separated like CSV.
+  Can be used to group vcards.
+  Reference [RFC 6350 Section 6.7.1](https://www.rfc-editor.org/rfc/rfc6350#section-6.7.1)
+  """
+  @spec create_categories(categories :: String.t(), opts :: List.t()) :: String.t()
+  def create_categories(categories, opts \\ [])
+  def create_categories("", _), do: ""
+
+  def create_categories(categories, []),
+    do: "CATEGORIES:" <> trim_categories(categories) <> "\r\n"
+
+  def create_categories(categories, opts) do
+    categories = trim_categories(categories)
+
+    params =
+      Enum.reduce(opts, "CATEGORIES", fn {key, value}, acc ->
+        key = upcase_key(key)
+        acc <> ";#{key}=#{value}"
+      end)
+
+    params <> ":#{categories}\r\n"
+  end
+
+  @doc """
+  Simple note to add more information about the VCARD.
+  Reference [RFC 6350 Section 6.7.2](https://www.rfc-editor.org/rfc/rfc6350#section-6.7.2)
+  """
+  def create_note(note, opts \\ [])
+  def create_note("", _), do: ""
+
+  def create_note(note, []) do
+      note = Naiveical.Helpers.fold(note)
+      "NOTE:#{note}\r\n"
+  end
+
+  def create_note(note, opts) do
+    note = Naiveical.Helpers.fold(note)
+    params =
+      Enum.reduce(opts, "NOTE", fn {key, value}, acc ->
+        key = upcase_key(key)
+        acc <> ";#{key}=#{value}"
+      end)
+
+    params <> ":#{note}\r\n"
   end
 
   @doc """
@@ -206,11 +255,21 @@ defmodule Naiveical.Creator.Vcard do
       if key not in [:street, :city, :region, :postal_code, :country] do
         key = upcase_key(key)
         acc <> ";#{key}=#{val}"
+      else
+        acc
       end
     end)
     |> add_addresses(address, opts)
   end
 
+  @doc """
+  Creates URL property.
+  Reference [RFC 6350 Section 6.7.8](https://www.rfc-editor.org/rfc/rfc6350#section-6.7.8)
+  ## Example
+      iex> Naiveical.Creator.Vcard.create_website("https://example.org", type: "work")
+      URL;TYPE=work:https://example.org\r\n
+  """
+  @spec create_website(url :: String.t(), opts :: List.t()) :: String.t()
   def create_website(url, opts \\ [])
   def create_website("", []), do: ""
   def create_website(url, []), do: "URL:#{url}\r\n"
@@ -245,8 +304,11 @@ defmodule Naiveical.Creator.Vcard do
   def create_full_name(prefix, first_name, middle_name, last_name, suffix, opts \\ [])
 
   def create_full_name(prefix, first_name, middle_name, last_name, suffix, []) do
-    full_name = construct_full_name(prefix, first_name, middle_name, last_name, suffix)
-    "N" <> full_name
+    if should_construct_full_name?([prefix, first_name, middle_name, last_name, suffix]) do
+      "N" <> construct_full_name(prefix, first_name, middle_name, last_name, suffix)
+    else
+      ""
+    end
   end
 
   def create_full_name(prefix, first_name, middle_name, last_name, suffix, opts) do
@@ -256,7 +318,11 @@ defmodule Naiveical.Creator.Vcard do
         acc <> ";#{key}=#{value}"
       end)
 
-    params <> construct_full_name(prefix, first_name, middle_name, last_name, suffix)
+    if should_construct_full_name?([prefix, first_name, middle_name, last_name, suffix]) do
+      params <> construct_full_name(prefix, first_name, middle_name, last_name, suffix)
+    else
+      ""
+    end
   end
 
   @doc """
@@ -294,8 +360,23 @@ defmodule Naiveical.Creator.Vcard do
     "#{address_comp}:;;#{address};#{city};#{region};#{postal_code};#{country}\r\n"
   end
 
+  defp should_construct_full_name?(name_comps) do
+    Enum.any?(name_comps, fn x -> x != "" end)
+  end
+
   defp construct_full_name(prefix, first_name, middle_name, last_name, suffix) do
-    ":#{prefix};#{first_name};#{middle_name};#{last_name};#{suffix}\r\n"
+    if should_construct_full_name?([prefix, first_name, middle_name, last_name, suffix]) do
+      ":#{prefix};#{first_name};#{middle_name};#{last_name};#{suffix}\r\n"
+    else
+      ""
+    end
+  end
+
+  defp trim_categories(categories) do
+    categories
+    |> String.split(",")
+    |> Enum.reject(&(&1 == "" or is_nil(&1)))
+    |> Enum.map_join(",", &String.trim/1)
   end
 
   defp upcase_key(key) do
