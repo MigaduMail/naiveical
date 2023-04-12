@@ -78,7 +78,7 @@ Extract the alerts:
 ## Example of creating VCARD 
 
 ### Explanation 
-Creation of VCARD is possible passing multiple options for components when calling the function ```elixir Naiveical.Creator.Vcard.create_vcard/2```, or by merging all together with ```elixir Naiveical.Modificator.insert_into/3```
+Creation of VCARD is possible passing multiple options for components when calling the function ```Naiveical.Creator.Vcard.create_vcard/2```, or by merging all together with ```Naiveical.Modificator.insert_into/3```
 Creating with components options is supported without adding additional params to component. To create with additional component params use dedicated function for each component and pass there additional options.
 Each component has [VCARD FORMAT](https://www.rfc-editor.org/rfc/rfc6350) reference for options.
 ## EXAMPLES
