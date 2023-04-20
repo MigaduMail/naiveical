@@ -151,6 +151,37 @@ defmodule Naiveical.ModificatorTest do
 
       assert expected == actual
     end
+
+    test "Add todo to calendar" do
+      ical_text =
+        """
+        BEGIN:VCALENDAR
+        VERSION:2.0
+        PRODID:Excalt
+        END:VCALENDAR
+        """
+        |> String.replace(~r/\r?\n/, "\r\n")
+
+      todo = Naiveical.Creator.Icalendar.create_vtodo("summary", ~D[2023-04-19], ~D[2023-04-20])
+
+      expected =
+        """
+        BEGIN:VCALENDAR
+        VERSION:2.0
+        PRODID:Excalt
+        BEGIN:VTODO
+        SUMMARY:summary
+        DTSTART:20230419
+        DUE:20230420
+        END:VTODO
+        END:VCALENDAR
+        """
+        |> String.replace(~r/\r?\n/, "\r\n")
+
+      {:ok, actual} = Naiveical.Modificator.insert_into(ical_text, todo, "VCALENDAR")
+
+      assert expected == actual
+    end
   end
 
   describe "Delete" do
