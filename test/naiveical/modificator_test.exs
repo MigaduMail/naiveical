@@ -162,7 +162,8 @@ defmodule Naiveical.ModificatorTest do
         """
         |> String.replace(~r/\r?\n/, "\r\n")
 
-      todo = Naiveical.Creator.Icalendar.create_vtodo("summary", ~D[2023-04-19], ~D[2023-04-20])
+      todo = Naiveical.Creator.Icalendar.create_vtodo("summary", ~D[2023-04-20], "20070313T123432Z", uuid: "526b4ae0-df57-11ed-94ec-920434f00633")
+
 
       expected =
         """
@@ -171,8 +172,9 @@ defmodule Naiveical.ModificatorTest do
         PRODID:Excalt
         BEGIN:VTODO
         SUMMARY:summary
-        DTSTART:20230419
-        DUE:20230420
+        DTSTAMP:20070313T123432Z
+        DUE;VALUE=DATE:20230420
+        UUID:526b4ae0-df57-11ed-94ec-920434f00633
         END:VTODO
         END:VCALENDAR
         """

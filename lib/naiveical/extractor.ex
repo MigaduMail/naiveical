@@ -50,9 +50,6 @@ defmodule Naiveical.Extractor do
 
     ## Examples:
 
-  iex> Naiveical.Extractor.remove_sections_by_tag("BEGIN:XX\\nBEGIN:YY\\nA:aa\\nB:bb\\nEND:YY\\naaaa:bbbb\\nBEGIN:YY\\nC:cc\\nD:dd\\nEND:YY\\nEND:XX", "YY")
-  "BEGIN:XX\\naaaa:bbbb\\nEND:XX"
-
   iex> Naiveical.Extractor.remove_sections_by_tag("BEGIN:XX\\nBEGIN:YY\\nA:aa\\nB:bb\\nEND:YY\\nEND:XX", "YY")
   "BEGIN:XX\\nEND:XX"
 
@@ -63,15 +60,17 @@ defmodule Naiveical.Extractor do
     if String.contains?(ical_text, tag) do
       ical_text = String.replace(ical_text, "\r\n", "\n")
       {:ok, regex} = Regex.compile("BEGIN:#{tag}")
-      startings = Regex.scan(regex, ical_text, return: :index)
+
+      startings =
+        Regex.scan(regex, ical_text, return: :index) ++ [[{String.length(ical_text), 0}]]
+
       {:ok, regex} = Regex.compile("END:#{tag}")
-      endings = Regex.scan(regex, ical_text, return: :index)
+      endings = [[{0, 0}]] ++ Regex.scan(regex, ical_text, return: :index)
 
       if length(startings) != length(endings),
         do: raise("No correct ical file, no matchin BEGIN/END for #{tag}")
 
       [{s, _len}] = Enum.at(startings, 0)
-      start_acc = String.slice(ical_text, 0, s)
       [{last_e, last_e_len}] = Enum.at(endings, -1)
       end_acc = String.slice(ical_text, (last_e + last_e_len)..-1)
 
@@ -82,16 +81,16 @@ defmodule Naiveical.Extractor do
         |> String.replace(~r/(\r?\n)+/, "\\1")
       else
         # |> String.replace(~r/\r?\n/, "\r\n")
-          (Enum.reduce(0..(length(startings) - 2), start_acc, fn idx, acc ->
-             [{e, e_len}] = Enum.at(endings, idx)
+        (Enum.reduce(0..(length(startings) - 2), "", fn idx, acc ->
+           [{s, _len}] = Enum.at(startings, idx)
+           [{e, e_len}] = Enum.at(endings, idx)
+           from = e + e_len
+           to = s - 1
 
-             from = e + e_len
-             to = s - 1
-
-             (acc <> String.slice(ical_text, from..to))
-             |> String.trim()
-           end) <> end_acc)
-          |> String.replace(~r/(\r?\n)+/, "\\1")
+           (acc <> String.slice(ical_text, from..to))
+           |> String.trim()
+         end) <> end_acc)
+        |> String.replace(~r/((\\r)?\\n)+/, "\\1")
       end
     else
       ical_text
@@ -130,7 +129,6 @@ defmodule Naiveical.Extractor do
       {tag, "", nil}
     end
   end
-
 
   @doc """
   Extract a raw single content line from an icalendar text.

@@ -30,30 +30,27 @@ defmodule Naiveical.CreatorTest do
 
   describe "create vevent" do
     test "simple vevent" do
-      dtstart = DateTime.new!(~D[2022-12-24], ~T[12:00:00.003], "Etc/UTC")
-      due = DateTime.new!(~D[2022-12-24], ~T[12:00:00.003], "Etc/UTC")
-      dtstamp = DateTime.new!(~D[2022-12-02], ~T[12:00:00.003], "Etc/UTC")
+      dtstart = DateTime.new!(~D[2022-12-24], ~T[12:00:00], "Etc/UTC")
+      due = DateTime.new!(~D[2022-12-24], ~T[12:00:00], "Etc/UTC")
+      dtstamp = DateTime.new!(~D[2022-12-02], ~T[12:00:00], "Etc/UTC")
 
       expected =
         """
-        BEGIN:VCALENDAR
-        VERSION:2.0
-        PRODID:Excalt
         BEGIN:VTODO
         SUMMARY:Hello world
-        DTSTART:20221224T1200Z
+        DTSTAMP:20221202T120000Z
         DUE:20221224T1200Z
         UUID:123456
-        DTSTAMP:20221202T1200Z
+        DTSTART:20221224T1200Z
         END:VTODO
-        END:VCALENDAR
         """
         |> String.replace(~r/\r?\n/, "\r\n")
 
       actual =
-        Naiveical.Creator.Icalendar.create_vtodo("Hello world", dtstart, due,
+        Naiveical.Creator.Icalendar.create_vtodo("Hello world", due, dtstamp,
           uuid: "123456",
-          dtstamp: dtstamp
+          dtstamp: dtstamp,
+          dtstart: dtstart
         )
 
       assert expected == actual

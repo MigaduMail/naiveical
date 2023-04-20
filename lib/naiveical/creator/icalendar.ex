@@ -24,7 +24,7 @@ defmodule Naiveical.Creator.Icalendar do
   end
 
   @doc """
-  Creates a VCALENDAR with a new VEVENT object.
+  Creates a new VEVENT object.
   """
   def create_vevent(
         summary,
@@ -32,15 +32,10 @@ defmodule Naiveical.Creator.Icalendar do
         dtend,
         location \\ "",
         description \\ "",
-        method \\ "PUBLISH",
         class \\ "PUBLIC"
       ) do
     ical =
       """
-      BEGIN:VCALENDAR
-      VERSION:2.0
-      PRODID:Excalt
-      METHOD:#{method}
       BEGIN:VEVENT
       UID:#{UUID.uuid1()}
       LOCATION:#{location}
@@ -51,20 +46,20 @@ defmodule Naiveical.Creator.Icalendar do
       DTEND:#{Timex.format!(dtend, "{ISO:Basic:Z}")}
       DTSTAMP:#{Timex.format!(DateTime.utc_now(), "{ISO:Basic:Z}")}
       END:VEVENT
-      END:VCALENDAR
       """
       |> String.replace(~r/\r?\n/, "\r\n")
   end
 
   @doc """
-  Creates a VCALENDAR with a new VTODO object.
+  Creates a new VTODO object.
   """
   def create_vtodo(
         summary,
-        dtstart,
         due,
+        dtstamp \\ DateTime.utc_now(),
         opts \\ []
       ) do
+
     other = ""
     other = other <> if opts[:completed], do: "COMPLETED:#{opts[:completed]}\n", else: ""
     other = other <> if opts[:status], do: "STATUS:#{opts[:status]}\n", else: ""
@@ -74,26 +69,45 @@ defmodule Naiveical.Creator.Icalendar do
 
     other =
       other <>
-        if opts[:dtstamp],
-          do: "DTSTAMP:#{Timex.format!(opts[:dtstamp], @datetime_format_str)}\n",
-          else: "#{Timex.format!(DateTime.utc_now(), @datetime_format_str)}\n"
+        if opts[:dtstart],
+          do: "DTSTART:#{Timex.format!(opts[:dtstart], @datetime_format_str)}\n",
+          else: ""
+
+    dtstamp_str =
+      case dtstamp do
+        %DateTime{} = dt ->
+          # do something with a DateTime value
+          "DTSTAMP:#{Timex.format!(dt, "{ISO:Basic:Z}")}\n"
+
+        _ ->
+          "DTSTAMP:#{dtstamp}\n"
+      end
+
+    due_str =
+      case due do
+        %Date{} = d ->
+          "DUE;VALUE=DATE:#{Date.to_iso8601(d, :basic)}\n"
+
+        %DateTime{} = dt ->
+          # do something with a DateTime value
+          "DUE:#{Timex.format!(dt, @datetime_format_str)}\n"
+
+        _ ->
+          "#{due}\n"
+      end
 
     ical =
       ("""
-       BEGIN:VCALENDAR
-       VERSION:2.0
-       PRODID:Excalt
        BEGIN:VTODO
        SUMMARY:#{summary}
-       DTSTART:#{Timex.format!(dtstart, @datetime_format_str)}
-       DUE:#{Timex.format!(due, @datetime_format_str)}
+       #{dtstamp_str}
+       #{due_str}
        """ <>
          other <>
          """
          END:VTODO
-         END:VCALENDAR
          """)
-      |> String.replace(~r/\r?\n/, "\r\n")
+      |> String.replace(~r/(\r?\n)+/, "\r\n")
   end
 
   def create_valert(description, %Date{} = date) do

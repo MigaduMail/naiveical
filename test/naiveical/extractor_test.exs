@@ -118,4 +118,17 @@ defmodule Naiveical.ExtractorTest do
       assert actual == expected
     end
   end
+
+  describe "remove sections" do
+    test "remove multiple sections" do
+      actual =
+        Naiveical.Extractor.remove_sections_by_tag(
+          "BEGIN:XX\\nBEGIN:YY\\nA:aa\\nB:bb\\nEND:YY\\naaaa:bbbb\\nBEGIN:YY\\nC:cc\\nD:dd\\nEND:YY\\nEND:XX",
+          "YY"
+        )
+
+      expected = "BEGIN:XX\\naaaa:bbbb\\nEND:XX"
+      assert actual == expected
+    end
+  end
 end
