@@ -19,6 +19,51 @@ defmodule Naiveical.ModificatorTest do
       assert expected == actual
     end
 
+    test "add a new value" do
+      ical =
+        """
+        BEGIN:VCALENDAR
+        SUMMARY:Hello world
+        END:VCALENDAR
+        """
+        |> String.replace(~r/\r?\n/, "\r\n")
+
+      actual = Naiveical.Modificator.change_value(ical, "something", "whatever")
+
+      expected =
+        """
+        BEGIN:VCALENDAR
+        SOMETHING:whatever
+        SUMMARY:Hello world
+        END:VCALENDAR
+        """
+        |> String.replace(~r/\r?\n/, "\r\n")
+
+      assert expected == actual
+    end
+
+    test "a change with nil" do
+      ical =
+        """
+        BEGIN:VCALENDAR
+        SUMMARY:Hello world
+        END:VCALENDAR
+        """
+        |> String.replace(~r/\r?\n/, "\r\n")
+
+      actual = Naiveical.Modificator.change_value(ical, "something", "")
+
+      expected =
+        """
+        BEGIN:VCALENDAR
+        SUMMARY:Hello world
+        END:VCALENDAR
+        """
+        |> String.replace(~r/\r?\n/, "\r\n")
+
+      assert expected == actual
+    end
+
     test "change a description" do
       vtodo =
         """
@@ -78,6 +123,51 @@ defmodule Naiveical.ModificatorTest do
 
       assert Naiveical.Extractor.extract_contentline_by_tag(updated_vtodo, "SUMMARY") ==
                {"SUMMARY", "", "a new summary"}
+    end
+  end
+
+  describe "change multiple values" do
+    test "change a list of values" do
+      vtodo =
+        """
+        BEGIN:VCALENDAR
+        VERSION:2.0
+        PRODID:Excalt
+        BEGIN:VTODO
+        SUMMARY:Hello world
+        DTSTART:20221224T1200Z
+        DUE:20221224T1200Z
+        UUID:123456
+        DTSTAMP:20221202T1200Z
+        END:VTODO
+        END:VCALENDAR
+        """
+        |> String.replace(~r/\r?\n/, "\r\n")
+
+      tag_values = %{
+        summary: "a new summary",
+        uuid: "123"
+      }
+
+      actual = Naiveical.Modificator.change_values(vtodo, tag_values)
+
+      expected =
+        """
+        BEGIN:VCALENDAR
+        VERSION:2.0
+        PRODID:Excalt
+        BEGIN:VTODO
+        SUMMARY:a new summary
+        DTSTART:20221224T1200Z
+        DUE:20221224T1200Z
+        UUID:123
+        DTSTAMP:20221202T1200Z
+        END:VTODO
+        END:VCALENDAR
+        """
+        |> String.replace(~r/\r?\n/, "\r\n")
+
+      assert expected == actual
     end
   end
 
@@ -162,8 +252,10 @@ defmodule Naiveical.ModificatorTest do
         """
         |> String.replace(~r/\r?\n/, "\r\n")
 
-      todo = Naiveical.Creator.Icalendar.create_vtodo("summary", ~D[2023-04-20], "20070313T123432Z", uuid: "526b4ae0-df57-11ed-94ec-920434f00633")
-
+      todo =
+        Naiveical.Creator.Icalendar.create_vtodo("summary", ~D[2023-04-20], "20070313T123432Z",
+          uuid: "526b4ae0-df57-11ed-94ec-920434f00633"
+        )
 
       expected =
         """

@@ -8,26 +8,47 @@ defmodule Naiveical.Modificator do
 
   @datetime_format_str "{YYYY}{0M}{0D}T{h24}{m}Z"
 
-  def change_value_txt(ical_text, tag, new_value, new_properties) do
-    {:ok, regex} = Regex.compile("^#{tag}[;]?.*:.*$", [:multiline])
+  defp remove_carrier_returns(txt), do: String.replace(txt, "\r\n", "\n")
+  defp add_carrier_returns(txt), do: String.replace(txt, ~r/\r?\n/, "\r\n")
 
-    [{start_idx, str_len}] =
-      Regex.run(regex, String.replace(ical_text, "\r\n", "\n"), return: :index)
+  def change_value_txt(ical_text, "", new_value, new_properties), do: ical_text
+
+  def change_value_txt(ical_text, tag, new_value, new_properties) do
+    {start_idx, str_len, tag} =
+      if String.contains?(ical_text, tag) do
+        {:ok, regex} = Regex.compile("^#{tag}[;]?.*:.*$", [:multiline])
+
+        [{start_idx, str_len}] =
+          Regex.run(regex, remove_carrier_returns(ical_text), return: :index)
+
+        {start_idx, str_len, tag}
+      else
+        {:ok, regex} = Regex.compile("^BEGIN:.*$", [:caseless, :multiline])
+
+        [{start_idx, str_len}] =
+          Regex.run(regex, remove_carrier_returns(ical_text), return: :index)
+
+        {start_idx + str_len, 0, "\n" <> tag}
+      end
 
     ics_before = String.slice(ical_text, 0, start_idx)
     ics_after = String.slice(ical_text, start_idx + str_len, String.length(ical_text))
 
     new_line =
-      if String.length(new_properties) > 0 do
-        "#{tag};#{new_properties}:#{new_value}"
+      if String.length(new_value) > 0 do
+        if String.length(new_properties) > 0 do
+          "#{tag};#{new_properties}:#{new_value}"
+        else
+          "#{tag}:#{new_value}"
+        end
       else
-        "#{tag}:#{new_value}"
+        ""
       end
 
     new_line = Helpers.fold(new_line)
 
     (ics_before <> "#{new_line}" <> ics_after)
-    |> String.replace(~r/\r?\n/, "\r\n")
+    |> add_carrier_returns
   end
 
   def change_value_txt(ical_text, tag, new_value) do
@@ -57,6 +78,15 @@ defmodule Naiveical.Modificator do
         } = datetime
       ) do
     change_value_txt(ical_text, tag, Timex.format(datetime, "{ISO:Basic:Z}"))
+  end
+
+  @doc """
+  Change a number of values in the ical_text.
+  """
+  def change_values(ical_text, tag_values) do
+    Enum.reduce(tag_values, ical_text, fn {key, value}, acc ->
+      change_value(acc, to_string(key), value)
+    end)
   end
 
   @doc """
