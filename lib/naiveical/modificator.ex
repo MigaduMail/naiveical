@@ -11,6 +11,23 @@ defmodule Naiveical.Modificator do
   defp remove_carrier_returns(txt), do: String.replace(txt, "\r\n", "\n")
   defp add_carrier_returns(txt), do: String.replace(txt, ~r/\r?\n/, "\r\n")
 
+  defp update_line(tag, new_value, new_properties) do
+    if String.contains?(new_value, tag) do
+      # we replace a raw value
+      new_value
+    else
+      if String.length(new_value) > 0 do
+        if String.length(new_properties) > 0 do
+          "#{tag};#{new_properties}:#{new_value}"
+        else
+          "#{tag}:#{new_value}"
+        end
+      else
+        ""
+      end
+    end
+  end
+
   def change_value_txt(ical_text, "", new_value, new_properties), do: ical_text
 
   def change_value_txt(ical_text, tag, new_value, new_properties) do
@@ -34,16 +51,7 @@ defmodule Naiveical.Modificator do
     ics_before = String.slice(ical_text, 0, start_idx)
     ics_after = String.slice(ical_text, start_idx + str_len, String.length(ical_text))
 
-    new_line =
-      if String.length(new_value) > 0 do
-        if String.length(new_properties) > 0 do
-          "#{tag};#{new_properties}:#{new_value}"
-        else
-          "#{tag}:#{new_value}"
-        end
-      else
-        ""
-      end
+    new_line = update_line(tag, new_value, new_properties)
 
     new_line = Helpers.fold(new_line)
 

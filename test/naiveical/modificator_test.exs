@@ -64,6 +64,47 @@ defmodule Naiveical.ModificatorTest do
       assert expected == actual
     end
 
+    test "change a raw value" do
+      vtodo =
+        """
+        BEGIN:VCALENDAR
+        VERSION:2.0
+        PRODID:Excalt
+        BEGIN:VTODO
+        SUMMARY:Hello world
+        DTSTART:20221224T1200Z
+        EXDATE:20220207T120000Z,20220209T120000Z
+        DUE:20221224T1200Z
+        UUID:123456
+        DTSTAMP:20221202T1200Z
+        END:VTODO
+        END:VCALENDAR
+        """
+        |> String.replace(~r/\r?\n/, "\r\n")
+
+      actual = Naiveical.Modificator.change_value(vtodo, "EXDATE", "EXDATE:20220207T120000Z")
+
+      expected =
+        """
+        BEGIN:VCALENDAR
+        VERSION:2.0
+        PRODID:Excalt
+        BEGIN:VTODO
+        SUMMARY:Hello world
+        DTSTART:20221224T1200Z
+        EXDATE:20220207T120000Z
+        DUE:20221224T1200Z
+        UUID:123456
+        DTSTAMP:20221202T1200Z
+        END:VTODO
+        END:VCALENDAR
+        """
+        |> String.replace(~r/\r?\n/, "\r\n")
+
+      assert expected == actual
+    end
+
+
     test "change a description" do
       vtodo =
         """
