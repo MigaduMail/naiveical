@@ -68,6 +68,14 @@ defmodule Naiveical.Modificator do
     change_value_txt(ical_text, tag, new_value)
   end
 
+  def change_value(ical_text, tag, new_value) when is_nil(new_value) do
+    if String.contains?(ical_text, tag) do
+      change_value_txt(ical_text, tag, new_value)
+    else
+      ical_text
+    end
+  end
+
   def change_value(
         ical_text,
         tag,

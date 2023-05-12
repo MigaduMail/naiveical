@@ -42,7 +42,7 @@ defmodule Naiveical.ModificatorTest do
       assert expected == actual
     end
 
-    test "a change with nil" do
+    test "a change with empty string" do
       ical =
         """
         BEGIN:VCALENDAR
@@ -52,6 +52,28 @@ defmodule Naiveical.ModificatorTest do
         |> String.replace(~r/\r?\n/, "\r\n")
 
       actual = Naiveical.Modificator.change_value(ical, "something", "")
+
+      expected =
+        """
+        BEGIN:VCALENDAR
+        SUMMARY:Hello world
+        END:VCALENDAR
+        """
+        |> String.replace(~r/\r?\n/, "\r\n")
+
+      assert expected == actual
+    end
+
+    test "try to change a non-existing tag with nil" do
+      ical =
+        """
+        BEGIN:VCALENDAR
+        SUMMARY:Hello world
+        END:VCALENDAR
+        """
+        |> String.replace(~r/\r?\n/, "\r\n")
+
+      actual = Naiveical.Modificator.change_value(ical, "something", nil)
 
       expected =
         """
