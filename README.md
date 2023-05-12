@@ -1,15 +1,20 @@
 # Naiveical
 
-Naiveical lets you create VCALENDAR and VCARD files.
-With naiveical you can extract parts of an icalendar or vcard file and update individual
-lines. It does not parse files but rather works directly with pure text.
+Naiveical lets you create and modify VCALENDAR and VCARD files, as well as extract
+specific parts of it. It does not parse the icalendar file but rather works directly with the pure text of the icalendar.
 As such it does not prevent you from doing stupid things, such as embedding
 elements into each other that have no meaning.
 
 The advantage of this approach is to keep the vcalendar and vcard text as close to the
 original as possible, with only modifying the changed parts. 
 
-Creation of those files is handled with Creator.Icalendar and Creator.Vcard
+## Rationale
+In principle, you have two approaches to modify icalendar texts. You can either parse the icalendar
+file into its attributes and values and then recreate the updated icalendar file. However, the problem
+there is that the specifications allow to add vendor-specific attributes. These often get lost
+while parsing/re-creating of the icalendar text. This is the reason we choose here to do a _naive_ approach
+by simply modifying the icalendar text directly, while keeping the rest of the text as-is.
+
 ## Installation
 
 The package [available in Hex](https://hex.pm/packages/naiveical) and can be installed
@@ -28,6 +33,7 @@ end
 Available at [HexDocs](https://hexdocs.pm/naiveical).
 
 ## Example of VCALENDAR CREATION
+Creation of those files is handled with Creator.Icalendar and Creator.Vcard
 
 Create a new vcalendar:
 
