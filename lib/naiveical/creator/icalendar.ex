@@ -37,7 +37,7 @@ defmodule Naiveical.Creator.Icalendar do
     ical =
       """
       BEGIN:VEVENT
-      UID:#{UUID.uuid1()}
+      UID:#{Uniq.UUID.uuid1()}
       LOCATION:#{location}
       SUMMARY:#{summary}
       DESCRIPTION:#{description}
@@ -65,7 +65,7 @@ defmodule Naiveical.Creator.Icalendar do
     other = other <> if opts[:status], do: "STATUS:#{opts[:status]}\n", else: ""
     other = other <> if opts[:description], do: "DESCRIPTION:#{opts[:description]}\n", else: ""
     other = other <> if opts[:priority], do: "PRIORITY:#{opts[:priority]}\n", else: ""
-    other = other <> if opts[:uuid], do: "UUID:#{opts[:uuid]}\n", else: "#{UUID.uuid1()}\n"
+    other = other <> if opts[:uuid], do: "UUID:#{opts[:uuid]}\n", else: "#{Uniq.UUID.uuid1()}\n"
 
     other =
       other <>

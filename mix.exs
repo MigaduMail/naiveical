@@ -1,7 +1,7 @@
 defmodule Naiveical.MixProject do
   use Mix.Project
 
-  @version "0.1.7"
+  @version "0.1.8"
 
   def project do
     [
@@ -50,7 +50,7 @@ defmodule Naiveical.MixProject do
     [
       {:tzdata, "~> 1.1"},
       {:timex, "~> 3.7"},
-      {:uuid, "~> 1.1"},
+      {:uniq, "~> 0.5.4"},
       {:ex_parameterized, "~> 1.3", only: :test},
       {:ex_doc, "~> 0.28.2", only: :dev, runtime: false},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false}
