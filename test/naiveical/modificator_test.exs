@@ -126,7 +126,6 @@ defmodule Naiveical.ModificatorTest do
       assert expected == actual
     end
 
-
     test "change a description" do
       vtodo =
         """
@@ -254,6 +253,36 @@ defmodule Naiveical.ModificatorTest do
         BE:there
         END:VTODO
         END:VCALENDAR
+        """
+        |> String.replace(~r/\r?\n/, "\r\n")
+
+      assert expected == actual
+    end
+
+    test "pseudo example with special chars" do
+      ical_text =
+        """
+        BEGIN:VCARD
+        VERSION:4.0
+        PRODID:-//Migadu-Excalt//
+        UID:1234
+        FN:Joe Huntš
+        END:VCARD
+        """
+        |> String.replace(~r/\r?\n/, "\r\n")
+
+      {:ok, actual} =
+        Naiveical.Modificator.insert_into(ical_text, "EMAIL:user@example.org", "VCARD")
+
+      expected =
+        """
+        BEGIN:VCARD
+        VERSION:4.0
+        PRODID:-//Migadu-Excalt//
+        UID:1234
+        FN:Joe Huntš
+        EMAIL:user@example.org
+        END:VCARD
         """
         |> String.replace(~r/\r?\n/, "\r\n")
 

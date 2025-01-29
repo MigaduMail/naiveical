@@ -39,6 +39,8 @@ defmodule Naiveical.Creator.Vcard do
   """
   @spec create_vcard(opts :: Keyword.t()) :: String.t()
   def create_vcard(uuid, opts \\ []) do
+    vcard_version = Keyword.get(opts, :vcard_version, @vcard_version)
+
     first_name = Keyword.get(opts, :first_name, "")
     last_name = Keyword.get(opts, :last_name, "")
     middle_name = Keyword.get(opts, :middle_name, "")
@@ -65,7 +67,7 @@ defmodule Naiveical.Creator.Vcard do
 
     ("""
      BEGIN:VCARD
-     VERSION:#{@vcard_version}
+     VERSION:#{vcard_version}
      PRODID:#{@prod_id}
      UID:#{uuid}
      FN:#{display_name}
@@ -122,12 +124,13 @@ defmodule Naiveical.Creator.Vcard do
   def create_note("", _), do: ""
 
   def create_note(note, []) do
-      note = Naiveical.Helpers.fold(note)
-      "NOTE:#{note}\r\n"
+    note = Naiveical.Helpers.fold(note)
+    "NOTE:#{note}\r\n"
   end
 
   def create_note(note, opts) do
     note = Naiveical.Helpers.fold(note)
+
     params =
       Enum.reduce(opts, "NOTE", fn {key, value}, acc ->
         key = upcase_key(key)
