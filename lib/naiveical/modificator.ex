@@ -119,15 +119,20 @@ defmodule Naiveical.Modificator do
       |> String.replace(~r/\r?\n/, "\r\n")
 
     if String.contains?(ical_text, "END:#{element}") do
-      {:ok, regex} =
+      beginning = opts[:at] == :beginning
+
+      splitter =
         if opts[:at] == :beginning do
-          Regex.compile("BEGIN:#{element}")
+          "BEGIN:#{element}"
         else
-          Regex.compile("END:#{element}")
+          "END:#{element}"
         end
 
-      [{start_idx, str_len}] =
-        Regex.run(regex, String.replace(ical_text, "\r\n", "\n"), return: :index)
+      {start_idx, str_len} =
+        ical_text
+        |> String.replace("\r\n", "\n")
+        |> String.split(splitter, parts: 2)
+        |> then(fn [start, _] -> {String.length(start), String.length(splitter)} end)
 
       {ics_before, ics_after} =
         if opts[:at] == :beginning do
