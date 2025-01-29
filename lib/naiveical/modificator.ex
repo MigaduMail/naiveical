@@ -119,8 +119,6 @@ defmodule Naiveical.Modificator do
       |> String.replace(~r/\r?\n/, "\r\n")
 
     if String.contains?(ical_text, "END:#{element}") do
-      beginning = opts[:at] == :beginning
-
       splitter =
         if opts[:at] == :beginning do
           "BEGIN:#{element}"
