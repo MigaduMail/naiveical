@@ -77,18 +77,35 @@ defmodule Naiveical.Helpers do
   end
 
   def parse_datetime(datetime_str, timezone) do
+    # check if we find the timezone, or if we can map it
     if is_nil(timezone) or String.length(timezone) == 0 do
       parse_datetime(datetime_str)
     else
       datetime_format_str = "{YYYY}{0M}{0D}T{h24}{m}{s}"
+      # try out parsing of windows timezone
+      if Tzdata.zone_exists?(timezone) do
+        case Timex.parse(datetime_str, datetime_format_str) do
+          {:ok, datetime} -> DateTime.from_naive(datetime, timezone)
+        end
+      else
+        windows_tzs = Naiveical.WindowsIanaConvert.get_iana(timezone)
+        tz = List.first(windows_tzs)
 
-      case Timex.parse(datetime_str, datetime_format_str) do
-        {:ok, datetime} -> DateTime.from_naive(datetime, timezone)
+        if Tzdata.zone_exists?(tz) do
+          case Timex.parse(datetime_str, datetime_format_str) do
+            {:ok, datetime} -> DateTime.from_naive(datetime, tz)
+          end
+        else
+          {:error, "No such timezone: #{timezone}"}
+        end
       end
     end
   end
 
   def parse_datetime!(datetime_str, timezone) do
+    IO.inspect(datetime_str: datetime_str)
+    IO.inspect(timezone: timezone)
+
     case parse_datetime(datetime_str, timezone) do
       {:ok, datetime} -> datetime
       {:error, error} -> raise ArgumentError, error

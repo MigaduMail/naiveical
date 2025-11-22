@@ -124,8 +124,9 @@ defmodule Naiveical.ExtractorTest do
       """
 
       actual = Naiveical.Extractor.extract_datetime_contentline_by_tag!(ical, "DTSTART")
-      expected = ~U[2022-08-16 10:00:00Z]
-      assert actual == expected
+      expected = ~U[2023-12-05 09:30:00Z]
+
+      assert DateTime.shift_zone!(actual, "Etc/UTC") == expected
     end
   end
 
