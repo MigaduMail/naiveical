@@ -24,15 +24,8 @@
             pkgs.elixir_1_19
             pkgs.erlang
             pkgs.rebar3
-            pkgs.chromedriver
-            pkgs.postgresql
-            pkgs.vdirsyncer
-            pkgs.python27
-            pkgs.python27Packages.pip
-            pkgs.python313
             pkgs.claude-code
             pkgs.codex
-            pkgs.uv
           ];
           env = {
             LANG = "en_US.UTF-8";
