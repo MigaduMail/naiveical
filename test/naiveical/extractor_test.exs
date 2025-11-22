@@ -117,6 +117,16 @@ defmodule Naiveical.ExtractorTest do
       expected = ~U[2022-08-16 10:00:00Z]
       assert actual == expected
     end
+
+    test "with windows datetime" do
+      ical = """
+      DTSTART;TZID=W. Europe Standard Time:20231205T103000
+      """
+
+      actual = Naiveical.Extractor.extract_datetime_contentline_by_tag!(ical, "DTSTART")
+      expected = ~U[2022-08-16 10:00:00Z]
+      assert actual == expected
+    end
   end
 
   describe "remove sections" do
