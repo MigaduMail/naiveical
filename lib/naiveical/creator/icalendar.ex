@@ -157,4 +157,66 @@ defmodule Naiveical.Creator.Icalendar do
     # todo: this is probably not correct
     create_valarm(description, to_string(trigger))
   end
+
+  @doc """
+  Build complete VCALENDAR with all components and VTIMEZONEs.
+
+  Creates a fully-formed VCALENDAR object containing:
+  - Standard VCALENDAR headers (VERSION, PRODID)
+  - Optional X-WR-CALNAME for calendar display name (Apple/Mozilla extension)
+  - All VTIMEZONE components (deduplicated by timezone ID)
+  - All calendar components (VEVENT, VTODO, etc.)
+
+  ## Parameters
+
+    * `components` - List of calendar component strings (VEVENT, VTODO, etc.)
+    * `vtimezones` - Map of timezone ID to VTIMEZONE component strings
+    * `displayname` - Optional calendar display name (default: nil)
+
+  ## Returns
+
+  A complete VCALENDAR string with proper CRLF line endings.
+
+  ## Examples
+
+      iex> components = ["BEGIN:VEVENT\\nUID:123\\n...\\nEND:VEVENT"]
+      iex> vtimezones = %{"America/New_York" => "BEGIN:VTIMEZONE\\n...\\nEND:VTIMEZONE"}
+      iex> build_aggregated_vcalendar(components, vtimezones, "My Calendar")
+      "BEGIN:VCALENDAR\\r\\n..."
+
+  """
+  def build_aggregated_vcalendar(components, vtimezones, displayname \\ nil) do
+    # Build the complete VCALENDAR with all VTIMEZONE components and events
+    lines = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//ExCaldav//CalDAV Server//EN"
+    ]
+
+    # Add X-WR-CALNAME if displayname is provided (Apple/Mozilla extension)
+    lines =
+      if displayname do
+        lines ++ ["X-WR-CALNAME:#{displayname}"]
+      else
+        lines
+      end
+
+    # Add all unique VTIMEZONE components
+    vtimezone_lines =
+      vtimezones
+      |> Map.values()
+      |> Enum.map(&String.trim/1)
+
+    # Add all event/todo components
+    component_lines =
+      components
+      # Maintain original order
+      |> Enum.reverse()
+      |> Enum.map(&String.trim/1)
+
+    # Combine all parts
+    all_lines = lines ++ vtimezone_lines ++ component_lines ++ ["END:VCALENDAR"]
+
+    Enum.join(all_lines, "\r\n") <> "\r\n"
+  end
 end

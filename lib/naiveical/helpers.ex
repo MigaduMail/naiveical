@@ -151,4 +151,172 @@ defmodule Naiveical.Helpers do
       end
     end
   end
+
+  @doc """
+  Parses iCalendar datetime formats to DateTime using regex-based parsing.
+
+  Supports three formats:
+  - UTC datetime: `20250101T120000Z`
+  - Local datetime: `20250101T120000` (treated as UTC)
+  - Date only: `20250101` (treated as midnight UTC)
+
+  This is a faster alternative to `parse_datetime/1` that doesn't require Timex for simple formats.
+
+  ## Examples
+
+      iex> Naiveical.Helpers.parse_icalendar_datetime("20250101T120000Z")
+      {:ok, ~U[2025-01-01 12:00:00Z]}
+
+      iex> Naiveical.Helpers.parse_icalendar_datetime("20250101")
+      {:ok, ~U[2025-01-01 00:00:00Z]}
+
+      iex> Naiveical.Helpers.parse_icalendar_datetime("")
+      {:error, :empty_string}
+  """
+  def parse_icalendar_datetime(nil), do: {:error, :nil_value}
+  def parse_icalendar_datetime(""), do: {:error, :empty_string}
+
+  def parse_icalendar_datetime(str) when is_binary(str) do
+    # Single regex pattern handles all three formats
+    pattern = ~r/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2}))?Z?$/
+
+    case Regex.run(pattern, String.trim_trailing(str, "Z")) do
+      [_, year, month, day, hour, minute, second] ->
+        build_datetime_from_parts(year, month, day, hour, minute, second)
+
+      [_, year, month, day] ->
+        build_datetime_from_parts(year, month, day, "0", "0", "0")
+
+      _ ->
+        {:error, :invalid_format}
+    end
+  end
+
+  @doc """
+  Parses iCalendar datetime formats to DateTime, raising on error.
+
+  See `parse_icalendar_datetime/1` for supported formats.
+
+  ## Examples
+
+      iex> Naiveical.Helpers.parse_icalendar_datetime!("20250101T120000Z")
+      ~U[2025-01-01 12:00:00Z]
+  """
+  def parse_icalendar_datetime!(str) do
+    case parse_icalendar_datetime(str) do
+      {:ok, datetime} -> datetime
+      {:error, reason} -> raise ArgumentError, "Failed to parse datetime: #{inspect(reason)}"
+    end
+  end
+
+  defp build_datetime_from_parts(year, month, day, hour, minute, second) do
+    with {:ok, date} <-
+           Date.new(
+             String.to_integer(year),
+             String.to_integer(month),
+             String.to_integer(day)
+           ),
+         {:ok, time} <-
+           Time.new(
+             String.to_integer(hour || "0"),
+             String.to_integer(minute || "0"),
+             String.to_integer(second || "0")
+           ),
+         {:ok, dt} <- DateTime.new(date, time, "Etc/UTC") do
+      {:ok, dt}
+    else
+      {:error, reason} -> {:error, reason}
+    end
+  rescue
+    _ -> {:error, :parse_failed}
+  end
+
+  @doc """
+  Formats a DateTime or NaiveDateTime for iCalendar output.
+
+  Returns timestamp in ISO 8601 basic format without separators: YYYYMMDDTHHMMSSZ
+
+  ## Examples
+
+      iex> dt = ~U[2025-01-01 12:30:45Z]
+      iex> Naiveical.Helpers.format_icalendar_datetime(dt)
+      "20250101T123045Z"
+  """
+  def format_icalendar_datetime(%DateTime{} = datetime) do
+    datetime
+    |> DateTime.truncate(:second)
+    |> DateTime.to_iso8601(:basic)
+    |> String.replace("-", "")
+    |> String.replace(":", "")
+  end
+
+  def format_icalendar_datetime(%NaiveDateTime{} = datetime) do
+    datetime
+    |> DateTime.from_naive!("Etc/UTC")
+    |> format_icalendar_datetime()
+  end
+
+  @doc """
+  Formats a Date for iCalendar output.
+
+  Returns date in ISO 8601 basic format: YYYYMMDD
+
+  ## Examples
+
+      iex> date = ~D[2025-01-01]
+      iex> Naiveical.Helpers.format_icalendar_date(date)
+      "20250101"
+  """
+  def format_icalendar_date(%Date{} = date) do
+    Calendar.strftime(date, "%Y%m%d")
+  end
+
+  @doc """
+  Parses an iCalendar date string (YYYYMMDD format) to a Date.
+
+  This is a faster alternative to `parse_date/1` for simple date-only formats.
+
+  ## Examples
+
+      iex> Naiveical.Helpers.parse_icalendar_date("20250101")
+      {:ok, ~D[2025-01-01]}
+
+      iex> Naiveical.Helpers.parse_icalendar_date("")
+      {:error, :empty_string}
+  """
+  def parse_icalendar_date(nil), do: {:error, :nil_value}
+  def parse_icalendar_date(""), do: {:error, :empty_string}
+
+  def parse_icalendar_date(str) when is_binary(str) do
+    pattern = ~r/^(\d{4})(\d{2})(\d{2})$/
+
+    case Regex.run(pattern, str) do
+      [_, year, month, day] ->
+        Date.new(
+          String.to_integer(year),
+          String.to_integer(month),
+          String.to_integer(day)
+        )
+
+      _ ->
+        {:error, :invalid_format}
+    end
+  rescue
+    _ -> {:error, :parse_failed}
+  end
+
+  @doc """
+  Parses an iCalendar date string (YYYYMMDD format) to a Date, raising on error.
+
+  ## Examples
+
+      iex> Naiveical.Helpers.parse_icalendar_date!("20250101")
+      ~D[2025-01-01]
+  """
+  def parse_icalendar_date!(str) do
+    case parse_icalendar_date(str) do
+      {:ok, date} -> date
+      {:error, reason} -> raise ArgumentError, "Failed to parse date: #{inspect(reason)}"
+    end
+  end
 end
