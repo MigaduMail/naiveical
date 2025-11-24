@@ -134,8 +134,12 @@ defmodule Naiveical.AlarmFilter do
   defp build_trigger_series(initial_trigger, repeat_count, interval_seconds) do
     additional =
       cond do
-        repeat_count <= 0 -> []
-        interval_seconds <= 0 -> []
+        repeat_count <= 0 ->
+          []
+
+        interval_seconds <= 0 ->
+          []
+
         true ->
           Enum.map(1..repeat_count, fn idx ->
             DateTime.add(initial_trigger, interval_seconds * idx, :second)
@@ -187,7 +191,9 @@ defmodule Naiveical.AlarmFilter do
 
   defp duration_property_seconds(ical_data, property) do
     case Extractor.extract_contentline_by_tag(ical_data, property) do
-      {_tag, _attrs, nil} -> 0
+      {_tag, _attrs, nil} ->
+        0
+
       {_tag, _attrs, value} ->
         case parse_duration_to_seconds(value) do
           {:ok, seconds} -> seconds
@@ -275,7 +281,8 @@ defmodule Naiveical.AlarmFilter do
   end
 
   defp build_datetime(year, month, day, hour, minute, second) do
-    with {:ok, date} <- Date.new(String.to_integer(year), String.to_integer(month), String.to_integer(day)),
+    with {:ok, date} <-
+           Date.new(String.to_integer(year), String.to_integer(month), String.to_integer(day)),
          {:ok, time} <-
            Time.new(
              String.to_integer(hour || "0"),

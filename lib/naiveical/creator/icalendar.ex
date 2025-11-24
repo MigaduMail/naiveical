@@ -59,7 +59,6 @@ defmodule Naiveical.Creator.Icalendar do
         dtstamp \\ DateTime.utc_now(),
         opts \\ []
       ) do
-
     other = ""
     other = other <> if opts[:completed], do: "COMPLETED:#{opts[:completed]}\n", else: ""
     other = other <> if opts[:status], do: "STATUS:#{opts[:status]}\n", else: ""

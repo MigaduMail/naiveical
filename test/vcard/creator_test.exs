@@ -100,7 +100,12 @@ defmodule Vcard.CreatorTest do
       expected = "EMAIL;TYPE=home;PREF=1;OPTION=10;LABEL=private:user@example.org\r\n"
 
       raw =
-        Vcard.create_email("user@example.org", type: "home", pref: 1, option: 10, label: "private")
+        Vcard.create_email("user@example.org",
+          type: "home",
+          pref: 1,
+          option: 10,
+          label: "private"
+        )
 
       assert expected == raw
     end
