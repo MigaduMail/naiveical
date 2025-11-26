@@ -242,4 +242,33 @@ defmodule Naiveical.Extractor do
       nil
     end
   end
+
+  @doc """
+  Detects the component type from iCalendar data.
+
+  Returns an atom representing the component type found in the iCalendar data.
+  Priority order: :vfreebusy > :vtodo > :vjournal > :vevent (default)
+
+  ## Examples
+
+      iex> Naiveical.Extractor.detect_component_type("BEGIN:VCALENDAR\\nBEGIN:VEVENT\\nEND:VEVENT\\nEND:VCALENDAR")
+      :vevent
+
+      iex> Naiveical.Extractor.detect_component_type("BEGIN:VCALENDAR\\nBEGIN:VTODO\\nEND:VTODO\\nEND:VCALENDAR")
+      :vtodo
+
+      iex> Naiveical.Extractor.detect_component_type("BEGIN:VCALENDAR\\nEND:VCALENDAR")
+      :vevent
+
+  """
+  @spec detect_component_type(String.t()) :: atom()
+  def detect_component_type(ical_data) do
+    cond do
+      extract_sections_by_tag(ical_data, "VFREEBUSY") != [] -> :vfreebusy
+      extract_sections_by_tag(ical_data, "VTODO") != [] -> :vtodo
+      extract_sections_by_tag(ical_data, "VJOURNAL") != [] -> :vjournal
+      extract_sections_by_tag(ical_data, "VEVENT") != [] -> :vevent
+      true -> :vevent
+    end
+  end
 end
