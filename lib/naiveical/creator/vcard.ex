@@ -37,7 +37,7 @@ defmodule Naiveical.Creator.Vcard do
   NOTE: in our case, which we are using SabreDav as a Cardav server,
   version and product ID will be overwritten by server itself.
   """
-  @spec create_vcard(opts :: Keyword.t()) :: String.t()
+  @spec create_vcard(String.t(), Keyword.t()) :: String.t()
   def create_vcard(uuid, opts \\ []) do
     vcard_version = Keyword.get(opts, :vcard_version, @vcard_version)
 
@@ -120,6 +120,7 @@ defmodule Naiveical.Creator.Vcard do
   Simple note to add more information about the VCARD.
   Reference [RFC 6350 Section 6.7.2](https://www.rfc-editor.org/rfc/rfc6350#section-6.7.2)
   """
+  @spec create_note(String.t(), Keyword.t()) :: String.t()
   def create_note(note, opts \\ [])
   def create_note("", _), do: ""
 
@@ -175,7 +176,11 @@ defmodule Naiveical.Creator.Vcard do
   @doc """
   Creates special dates such as birthdays or anniversary.
   """
-  @spec create_special_date(nickname :: String.t(), opts :: List.t()) :: String.t()
+  @spec create_special_date(
+          Date.t() | String.t(),
+          atom() | String.t(),
+          Keyword.t()
+        ) :: String.t()
   def create_special_date(date, type, opts \\ [])
   def create_special_date("", _, _), do: ""
 
@@ -234,6 +239,7 @@ defmodule Naiveical.Creator.Vcard do
       iex> Naiveical.Creator.Vcard.create_display_name("Display Name")
       "Display Name"
   """
+  @spec create_display_name(String.t(), String.t(), String.t()) :: String.t()
   def create_display_name(display_name \\ "", first_name \\ "", last_name \\ "") do
     if display_name != "" do
       display_name

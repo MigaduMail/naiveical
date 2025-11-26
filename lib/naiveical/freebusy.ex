@@ -25,6 +25,8 @@ defmodule Naiveical.FreeBusy do
       [%{start: "20251105T100000Z", end: "20251105T110000Z"}]
 
   """
+  @spec extract_busy_period_from_event(String.t(), %{start: String.t(), end: String.t()}) ::
+          [%{start: String.t(), end: String.t()}]
   def extract_busy_period_from_event(ical_data, time_range) when is_binary(ical_data) do
     Logger.debug(fn ->
       """

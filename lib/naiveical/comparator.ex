@@ -5,6 +5,7 @@ defmodule CalendarClient.Naiveical.Comparator do
 
   alias Naiveical.Helpers
 
+  @spec equal?(String.t(), String.t(), [String.t()]) :: boolean()
   def equal?(ical_text_1, ical_text_2, exclude_tags \\ []) do
     ical_text_1_sorted =
       ical_text_1

@@ -5,6 +5,9 @@ defmodule Naiveical.AlarmFilter do
 
   alias Naiveical.Extractor
 
+  @type filter_range :: %{start: String.t(), end: String.t()}
+
+  @spec apply([map()], filter_range() | nil) :: [map()]
   def apply(objects, nil), do: objects
 
   def apply(objects, %{start: start_str, end: end_str}) do

@@ -5,6 +5,8 @@ defmodule Naiveical.Extractor do
 
   alias Naiveical.Helpers
 
+  @type content_line :: {String.t(), String.t(), String.t() | nil}
+
   @doc """
   Extract parts of an icalender text, such as all VALARMs.
     ## Examples:
@@ -16,6 +18,7 @@ defmodule Naiveical.Extractor do
   ["BEGIN:YY\\r\\nA:aa\\r\\nB:bb\\r\\nEND:YY", "BEGIN:YY\\r\\nC:cc\\r\\nD:dd\\r\\nEND:YY"]
 
   """
+  @spec extract_sections_by_tag(String.t(), String.t()) :: [String.t()]
   def extract_sections_by_tag(ical_text, tag) do
     ical_text = String.replace(ical_text, "\r\n", "\n")
     {:ok, regex} = Regex.compile("BEGIN:#{tag}")
@@ -56,13 +59,15 @@ defmodule Naiveical.Extractor do
   iex> Naiveical.Extractor.remove_sections_by_tag("BEGIN:XX\\nBEGIN:YY\\nA:aa\\nB:bb\\nEND:YY\\naaaa:bbbb\\nBEGIN:YY\\nC:cc\\nD:dd\\nEND:YY\\nEND:XX", "NOTEXIST")
   "BEGIN:XX\\nBEGIN:YY\\nA:aa\\nB:bb\\nEND:YY\\naaaa:bbbb\\nBEGIN:YY\\nC:cc\\nD:dd\\nEND:YY\\nEND:XX"
   """
+  @spec remove_sections_by_tag(String.t(), String.t()) :: String.t()
   def remove_sections_by_tag(ical_text, tag) do
     if String.contains?(ical_text, tag) do
       ical_text = String.replace(ical_text, "\r\n", "\n")
       {:ok, regex} = Regex.compile("BEGIN:#{tag}")
 
+      byte_len = byte_size(ical_text)
       startings =
-        Regex.scan(regex, ical_text, return: :index) ++ [[{String.length(ical_text), 0}]]
+        Regex.scan(regex, ical_text, return: :index) ++ [[{byte_len, 0}]]
 
       {:ok, regex} = Regex.compile("END:#{tag}")
       endings = [[{0, 0}]] ++ Regex.scan(regex, ical_text, return: :index)
@@ -72,12 +77,17 @@ defmodule Naiveical.Extractor do
 
       [{s, _len}] = Enum.at(startings, 0)
       [{last_e, last_e_len}] = Enum.at(endings, -1)
-      end_acc = String.slice(ical_text, (last_e + last_e_len)..-1)
+      end_acc_start = last_e + last_e_len
+      tail_length = max(byte_len - end_acc_start, 0)
+      end_acc = String.slice(ical_text, end_acc_start, tail_length)
 
       if length(startings) < 2 do
         [{e, e_len}] = Enum.at(endings, 0)
+        prefix = String.slice(ical_text, 0, s)
+        suffix_length = max(byte_len - (e + e_len), 0)
+        suffix = String.slice(ical_text, e + e_len, suffix_length)
 
-        (String.slice(ical_text, 0..(s - 1)) <> String.slice(ical_text, (e + e_len)..-1))
+        (prefix <> suffix)
         |> String.replace(~r/(\r?\n)+/, "\\1")
       else
         # |> String.replace(~r/\r?\n/, "\r\n")
@@ -86,9 +96,16 @@ defmodule Naiveical.Extractor do
            [{e, e_len}] = Enum.at(endings, idx)
            from = e + e_len
            to = s - 1
+           length = to - from + 1
 
-           (acc <> String.slice(ical_text, from..to))
-           |> String.trim()
+           segment =
+             if length > 0 do
+               String.slice(ical_text, from, length)
+             else
+               ""
+             end
+
+           (acc <> segment) |> String.trim()
          end) <> end_acc)
         |> String.replace(~r/((\\r)?\\n)+/, "\\1")
       end
@@ -108,6 +125,7 @@ defmodule Naiveical.Extractor do
   iex> Naiveical.Extractor.extract_contentline_by_tag("BEGIN:XX\\nBEGIN:YY\\nA:aa\\nB:bb\\nEND:YY\\nBEGIN:YY\\nC:cc\\nD:dd\\nEND:YY\\nEND:XX", "ZZZ")
   {"ZZZ","",nil}
   """
+  @spec extract_contentline_by_tag(String.t() | nil, String.t()) :: content_line()
   def extract_contentline_by_tag(nil, tag), do: {tag, "", nil}
 
   def extract_contentline_by_tag(ical_text, tag) do
@@ -141,6 +159,7 @@ defmodule Naiveical.Extractor do
   iex> Naiveical.Extractor.extract_raw_contentline_by_tag("BEGIN:XX\\nBEGIN:YY\\nA:aa\\nB:bb\\nEND:YY\\nBEGIN:YY\\nC:cc\\nD:dd\\nEND:YY\\nEND:XX", "ZZZ")
   nil
   """
+  @spec extract_raw_contentline_by_tag(String.t() | nil, String.t()) :: String.t() | nil
   def extract_raw_contentline_by_tag(nil, _tag), do: nil
 
   def extract_raw_contentline_by_tag(ical_text, tag) do
@@ -167,6 +186,8 @@ defmodule Naiveical.Extractor do
   iex> Naiveical.Extractor.extract_datetime_contentline_by_tag("BEGIN:XX\\nBEGIN:YY\\nA:aa\\nB:bb\\nDTSTART;TZID=Europe/Berlin:20210422T150000\\nEND:YY\\nBEGIN:YY\\nC:cc\\nD:dd\\nEND:YY\\nEND:XX", "DTSTART")
 
   """
+  @spec extract_datetime_contentline_by_tag(String.t(), String.t()) ::
+          {:ok, DateTime.t()} | {:error, term()} | nil
   def extract_datetime_contentline_by_tag(ical_text, tag) do
     {_tag, attrs, dtstart_str} = Naiveical.Extractor.extract_contentline_by_tag(ical_text, tag)
 
@@ -190,6 +211,7 @@ defmodule Naiveical.Extractor do
   iex> Naiveical.Extractor.extract_datetime_contentline_by_tag!("BEGIN:XX\\nBEGIN:YY\\nA:aa\\nB:bb\\nDTSTART;TZID=Europe/Berlin:20210422T150000\\nEND:YY\\nBEGIN:YY\\nC:cc\\nD:dd\\nEND:YY\\nEND:XX", "DTSTART")
 
   """
+  @spec extract_datetime_contentline_by_tag!(String.t(), String.t()) :: DateTime.t()
   def extract_datetime_contentline_by_tag!(ical_text, tag) do
     {_tag, attrs, datetime_str} = Naiveical.Extractor.extract_contentline_by_tag(ical_text, tag)
 
@@ -212,12 +234,14 @@ defmodule Naiveical.Extractor do
   iex> Naiveical.Extractor.extract_date_contentline_by_tag!("BEGIN:XX\\nBEGIN:YY\\nA:aa\\nB:bb\\nDTSTART;TZID=Europe/Berlin:20210422\\nEND:YY\\nBEGIN:YY\\nC:cc\\nD:dd\\nEND:YY\\nEND:XX", "DTSTART")
 
   """
+  @spec extract_date_contentline_by_tag!(String.t(), String.t()) :: NaiveDateTime.t()
   def extract_date_contentline_by_tag!(ical_text, tag) do
     {_tag, _attrs, date_str} = Naiveical.Extractor.extract_contentline_by_tag(ical_text, tag)
 
     Naiveical.Helpers.parse_date!(date_str)
   end
 
+  @spec extract_date_contentline_by_tag(String.t(), String.t()) :: {:ok, Date.t()} | {:error, term()}
   def extract_date_contentline_by_tag(ical_text, tag) do
     {_tag, _attrs, date_str} = Naiveical.Extractor.extract_contentline_by_tag(ical_text, tag)
 
@@ -227,6 +251,7 @@ defmodule Naiveical.Extractor do
   @doc """
   Extracts a specific attribute from a list of attributes.
   """
+  @spec extract_attribute(String.t(), String.t()) :: String.t() | nil
   def extract_attribute(attribute_list_str, attr) do
     if String.contains?(attribute_list_str, attr) do
       attribute_list_str
@@ -264,11 +289,19 @@ defmodule Naiveical.Extractor do
   @spec detect_component_type(String.t()) :: atom()
   def detect_component_type(ical_data) do
     cond do
-      extract_sections_by_tag(ical_data, "VFREEBUSY") != [] -> :vfreebusy
-      extract_sections_by_tag(ical_data, "VTODO") != [] -> :vtodo
-      extract_sections_by_tag(ical_data, "VJOURNAL") != [] -> :vjournal
-      extract_sections_by_tag(ical_data, "VEVENT") != [] -> :vevent
+      component_present?(ical_data, "VFREEBUSY") -> :vfreebusy
+      component_present?(ical_data, "VTODO") -> :vtodo
+      component_present?(ical_data, "VJOURNAL") -> :vjournal
+      component_present?(ical_data, "VEVENT") -> :vevent
       true -> :vevent
+    end
+  end
+
+  defp component_present?(ical_data, tag) do
+    try do
+      extract_sections_by_tag(ical_data, tag) != []
+    rescue
+      _ in RuntimeError -> String.contains?(ical_data, "BEGIN:#{tag}")
     end
   end
 end

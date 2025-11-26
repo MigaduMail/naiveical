@@ -6,6 +6,7 @@ defmodule Naiveical.Helpers do
   @doc """
   Splits a long line into several lines starting with a space.
   """
+  @spec unfold(String.t()) :: String.t()
   def unfold(ical_text) do
     ical_text
     |> String.replace(~r/\r?\n[ \t]/, "")
@@ -26,6 +27,7 @@ defmodule Naiveical.Helpers do
   The fold function splits a string across graphemes if the byte-size of the substring will
   exceed the max_size. It then adds a CRLF and an empty space at the split-point.
   """
+  @spec fold(String.t(), non_neg_integer()) :: String.t()
   def fold(line, max_size \\ 75) do
     # current_element = List.last(list)
     # if byte_size(current_element + char) > max_size do
@@ -50,6 +52,7 @@ defmodule Naiveical.Helpers do
   @doc """
   Parse a timedate text into DateTime.
   """
+  @spec parse_datetime(String.t()) :: {:ok, DateTime.t()} | {:error, term()}
   def parse_datetime(datetime_str) do
     datetime_format_str = "{YYYY}{0M}{0D}T{h24}{m}{s}Z"
     naive_datetime_format_str = "{YYYY}{0M}{0D}T{h24}{m}{s}"
@@ -69,6 +72,7 @@ defmodule Naiveical.Helpers do
     end
   end
 
+  @spec parse_datetime!(String.t()) :: DateTime.t()
   def parse_datetime!(datetime_str) do
     case parse_datetime(datetime_str) do
       {:ok, datetime} -> datetime
@@ -76,6 +80,7 @@ defmodule Naiveical.Helpers do
     end
   end
 
+  @spec parse_datetime(String.t(), String.t() | nil) :: {:ok, DateTime.t()} | {:error, term()} | nil
   def parse_datetime(datetime_str, timezone) do
     # check if we find the timezone, or if we can map it
     if is_nil(timezone) or String.length(timezone) == 0 do
@@ -102,6 +107,7 @@ defmodule Naiveical.Helpers do
     end
   end
 
+  @spec parse_datetime!(String.t(), String.t() | nil) :: DateTime.t()
   def parse_datetime!(datetime_str, timezone) do
     IO.inspect(datetime_str: datetime_str)
     IO.inspect(timezone: timezone)
@@ -115,12 +121,14 @@ defmodule Naiveical.Helpers do
   @doc """
   Parse a timedate text into DateTime.
   """
+  @spec parse_date!(String.t()) :: NaiveDateTime.t()
   def parse_date!(date_str) do
     date_format_str = "{YYYY}{0M}{0D}"
 
     Timex.parse!(date_str, date_format_str)
   end
 
+  @spec parse_date(String.t()) :: {:ok, Date.t()} | {:error, term()}
   def parse_date(date_str) do
     date_str =
       if String.contains?(date_str, "T") do
@@ -139,6 +147,7 @@ defmodule Naiveical.Helpers do
     end
   end
 
+  @spec is_fullday(String.t(), String.t()) :: boolean()
   def is_fullday(attributes, datetime_str) do
     date_format_str = "{YYYY}{0M}{0D}"
 
@@ -173,6 +182,7 @@ defmodule Naiveical.Helpers do
       iex> Naiveical.Helpers.parse_icalendar_datetime("")
       {:error, :empty_string}
   """
+  @spec parse_icalendar_datetime(String.t() | nil) :: {:ok, DateTime.t()} | {:error, term()}
   def parse_icalendar_datetime(nil), do: {:error, :nil_value}
   def parse_icalendar_datetime(""), do: {:error, :empty_string}
 
@@ -202,6 +212,7 @@ defmodule Naiveical.Helpers do
       iex> Naiveical.Helpers.parse_icalendar_datetime!("20250101T120000Z")
       ~U[2025-01-01 12:00:00Z]
   """
+  @spec parse_icalendar_datetime!(String.t()) :: DateTime.t()
   def parse_icalendar_datetime!(str) do
     case parse_icalendar_datetime(str) do
       {:ok, datetime} -> datetime
@@ -242,6 +253,7 @@ defmodule Naiveical.Helpers do
       iex> Naiveical.Helpers.format_icalendar_datetime(dt)
       "20250101T123045Z"
   """
+  @spec format_icalendar_datetime(DateTime.t() | NaiveDateTime.t()) :: String.t()
   def format_icalendar_datetime(%DateTime{} = datetime) do
     datetime
     |> DateTime.truncate(:second)
@@ -267,6 +279,7 @@ defmodule Naiveical.Helpers do
       iex> Naiveical.Helpers.format_icalendar_date(date)
       "20250101"
   """
+  @spec format_icalendar_date(Date.t()) :: String.t()
   def format_icalendar_date(%Date{} = date) do
     Calendar.strftime(date, "%Y%m%d")
   end
@@ -284,6 +297,7 @@ defmodule Naiveical.Helpers do
       iex> Naiveical.Helpers.parse_icalendar_date("")
       {:error, :empty_string}
   """
+  @spec parse_icalendar_date(String.t() | nil) :: {:ok, Date.t()} | {:error, term()}
   def parse_icalendar_date(nil), do: {:error, :nil_value}
   def parse_icalendar_date(""), do: {:error, :empty_string}
 
@@ -313,6 +327,7 @@ defmodule Naiveical.Helpers do
       iex> Naiveical.Helpers.parse_icalendar_date!("20250101")
       ~D[2025-01-01]
   """
+  @spec parse_icalendar_date!(String.t()) :: Date.t()
   def parse_icalendar_date!(str) do
     case parse_icalendar_date(str) do
       {:ok, date} -> date

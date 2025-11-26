@@ -8,6 +8,7 @@ defmodule Naiveical.Creator.Icalendar do
   @doc """
   Creates a VCALENDAR object.
   """
+  @spec create_vcalendar(String.t(), String.t()) :: String.t()
   def create_vcalendar(
         method \\ "PUBLISH",
         prod_id \\ "Excalt"
@@ -25,6 +26,14 @@ defmodule Naiveical.Creator.Icalendar do
   @doc """
   Creates a new VEVENT object.
   """
+  @spec create_vevent(
+          String.t(),
+          DateTime.t(),
+          DateTime.t(),
+          String.t(),
+          String.t(),
+          String.t()
+        ) :: String.t()
   def create_vevent(
         summary,
         dtstart,
@@ -51,6 +60,12 @@ defmodule Naiveical.Creator.Icalendar do
   @doc """
   Creates a new VTODO object.
   """
+  @spec create_vtodo(
+          String.t(),
+          Date.t() | DateTime.t() | String.t(),
+          DateTime.t() | String.t(),
+          Keyword.t()
+        ) :: String.t()
   def create_vtodo(
         summary,
         due,
@@ -106,6 +121,7 @@ defmodule Naiveical.Creator.Icalendar do
     |> String.replace(~r/(\r?\n)+/, "\r\n")
   end
 
+  @spec create_valert(String.t(), Date.t() | NaiveDateTime.t() | DateTime.t()) :: String.t()
   def create_valert(description, %Date{} = date) do
     trigger = Timex.format!(date, @date_format_str)
 
@@ -137,6 +153,7 @@ defmodule Naiveical.Creator.Icalendar do
     |> String.replace(~r/\r?\n/, "\r\n")
   end
 
+  @spec create_valarm(String.t(), term()) :: String.t()
   def create_valarm(description, trigger)
       when is_bitstring(trigger) do
     """
@@ -181,6 +198,11 @@ defmodule Naiveical.Creator.Icalendar do
       "BEGIN:VCALENDAR\\r\\n..."
 
   """
+  @spec build_aggregated_vcalendar(
+          [String.t()],
+          %{optional(String.t()) => String.t()},
+          String.t() | nil
+        ) :: String.t()
   def build_aggregated_vcalendar(components, vtimezones, displayname \\ nil) do
     # Build the complete VCALENDAR with all VTIMEZONE components and events
     lines = [

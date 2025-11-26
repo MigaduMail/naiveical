@@ -27,6 +27,7 @@ defmodule Naiveical.Modificator do
     end
   end
 
+  @spec change_value_txt(String.t(), String.t(), String.t() | nil, String.t()) :: String.t()
   def change_value_txt(ical_text, "", _new_value, _new_properties), do: ical_text
 
   def change_value_txt(ical_text, tag, new_value, new_properties) do
@@ -58,11 +59,13 @@ defmodule Naiveical.Modificator do
     |> add_carrier_returns
   end
 
+  @spec change_value_txt(String.t(), String.t(), String.t() | nil) :: String.t()
   def change_value_txt(ical_text, tag, new_value) do
     {tag, _properties, _values} = Extractor.extract_contentline_by_tag(ical_text, tag)
     change_value_txt(ical_text, tag, new_value, "")
   end
 
+  @spec change_value(String.t(), String.t(), String.t() | DateTime.t() | nil) :: String.t()
   def change_value(ical_text, tag, new_value) when is_binary(new_value) do
     change_value_txt(ical_text, tag, new_value)
   end
@@ -98,6 +101,7 @@ defmodule Naiveical.Modificator do
   @doc """
   Change a number of values in the ical_text.
   """
+  @spec change_values(String.t(), [{String.t(), term()}]) :: String.t()
   def change_values(ical_text, tag_values) do
     Enum.reduce(tag_values, ical_text, fn {key, value}, acc ->
       change_value(acc, to_string(key), value)
@@ -107,6 +111,8 @@ defmodule Naiveical.Modificator do
   @doc """
   Inserts another element (or any text) into the ical_text just before the ending of the element.
   """
+  @spec insert_into(String.t(), String.t(), String.t(), Keyword.t()) ::
+          {:ok, String.t()} | {:error, String.t()}
   def insert_into(ical_text, new_content, element, opts \\ []) do
     # normalize new element, add newlines if needed
     new_content =
@@ -151,6 +157,7 @@ defmodule Naiveical.Modificator do
   @doc """
   Remove all elements of a specific type.
   """
+  @spec delete_all(String.t(), String.t()) :: {:ok, String.t()} | {:error, String.t()}
   def delete_all(ical_text, tag) do
     if String.contains?(ical_text, "END:#{tag}") do
       ical_text = String.replace(ical_text, "\r\n", "\n")
@@ -196,6 +203,7 @@ defmodule Naiveical.Modificator do
     end
   end
 
+  @spec delete_all!(String.t(), String.t()) :: String.t()
   def delete_all!(ical_text, tag) do
     case delete_all(ical_text, tag) do
       {:ok, res} -> res
@@ -203,6 +211,7 @@ defmodule Naiveical.Modificator do
     end
   end
 
+  @spec add_timezone_info(String.t()) :: {:ok, String.t()} | {:error, String.t()}
   def add_timezone_info(ical_text) do
     # find all timezone informations
     timezones = Regex.scan(~r/TZID=(.*):/, ical_text) |> Enum.uniq()

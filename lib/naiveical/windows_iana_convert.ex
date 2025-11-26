@@ -5,6 +5,7 @@ defmodule Naiveical.WindowsIanaConvert do
 
   import SweetXml
 
+  @spec extract_windows_zones() :: [map()]
   def extract_windows_zones() do
     path = Application.app_dir(:naiveical) |> Path.join("priv/windowsZones.xml")
     d = File.read!(path)
@@ -20,6 +21,7 @@ defmodule Naiveical.WindowsIanaConvert do
     end)
   end
 
+  @spec get_iana(String.t()) :: [String.t()]
   def get_iana(windows_tz) do
     extract_windows_zones()
     |> Enum.reduce([], fn %{type: type, zone: zone, territory: _territory}, acc ->
