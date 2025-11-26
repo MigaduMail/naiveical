@@ -80,41 +80,54 @@ defmodule Naiveical.Helpers do
     end
   end
 
-  @spec parse_datetime(String.t(), String.t() | nil) :: {:ok, DateTime.t()} | {:error, term()} | nil
+  @spec parse_datetime(String.t(), String.t() | nil) :: {:ok, DateTime.t()} | {:error, term()}
   def parse_datetime(datetime_str, timezone) do
-    # check if we find the timezone, or if we can map it
-    if is_nil(timezone) or String.length(timezone) == 0 do
+    timezone = (timezone || "") |> String.trim()
+
+    if timezone == "" do
       parse_datetime(datetime_str)
     else
-      datetime_format_str = "{YYYY}{0M}{0D}T{h24}{m}{s}"
-      # try out parsing of windows timezone
-      if Tzdata.zone_exists?(timezone) do
-        case Timex.parse(datetime_str, datetime_format_str) do
-          {:ok, datetime} -> DateTime.from_naive(datetime, timezone)
-        end
+      with {:ok, naive} <- parse_naive_datetime(datetime_str),
+           {:ok, resolved_tz} <- resolve_timezone(timezone),
+           {:ok, datetime} <- DateTime.from_naive(naive, resolved_tz) do
+        {:ok, datetime}
       else
-        windows_tzs = Naiveical.WindowsIanaConvert.get_iana(timezone)
-        tz = List.first(windows_tzs)
-
-        if Tzdata.zone_exists?(tz) do
-          case Timex.parse(datetime_str, datetime_format_str) do
-            {:ok, datetime} -> DateTime.from_naive(datetime, tz)
-          end
-        else
-          {:error, "No such timezone: #{timezone}"}
-        end
+        {:error, _} = err -> err
       end
     end
   end
 
   @spec parse_datetime!(String.t(), String.t() | nil) :: DateTime.t()
   def parse_datetime!(datetime_str, timezone) do
-    IO.inspect(datetime_str: datetime_str)
-    IO.inspect(timezone: timezone)
-
     case parse_datetime(datetime_str, timezone) do
       {:ok, datetime} -> datetime
       {:error, error} -> raise ArgumentError, error
+    end
+  end
+
+  defp parse_naive_datetime(datetime_str) do
+    datetime_format_str = "{YYYY}{0M}{0D}T{h24}{m}{s}"
+    trimmed = String.trim_trailing(datetime_str, "Z")
+
+    case Timex.parse(trimmed, datetime_format_str) do
+      {:ok, datetime} -> {:ok, datetime}
+      {:error, _reason} = err -> err
+    end
+  end
+
+  defp resolve_timezone(timezone) do
+    cond do
+      Tzdata.zone_exists?(timezone) ->
+        {:ok, timezone}
+
+      true ->
+        timezone
+        |> Naiveical.WindowsIanaConvert.get_iana()
+        |> Enum.find(&Tzdata.zone_exists?/1)
+        |> case do
+          nil -> {:error, {:unknown_timezone, timezone}}
+          tz -> {:ok, tz}
+        end
     end
   end
 

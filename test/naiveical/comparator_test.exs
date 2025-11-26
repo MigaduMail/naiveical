@@ -1,7 +1,7 @@
-defmodule CalendarClient.Naiveical.ComparatorTest do
+defmodule Naiveical.ComparatorTest do
   use ExUnit.Case
 
-  alias CalendarClient.Naiveical.Comparator
+  alias Naiveical.Comparator
 
   describe "equal?" do
     test "equal? returns true when two identical iCal texts are compared" do

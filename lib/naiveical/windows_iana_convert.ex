@@ -5,29 +5,31 @@ defmodule Naiveical.WindowsIanaConvert do
 
   import SweetXml
 
-  @spec extract_windows_zones() :: [map()]
-  def extract_windows_zones() do
-    path = Application.app_dir(:naiveical) |> Path.join("priv/windowsZones.xml")
-    d = File.read!(path)
-    doc = parse(d, namespace_conformant: true)
+  @windows_zone_file Application.app_dir(:naiveical) |> Path.join("priv/windowsZones.xml")
 
-    xpath(doc, ~x"//mapZone"l)
-    |> Enum.map(fn li_node ->
-      %{
-        zone: xpath(li_node, ~x"//mapZone/@other"l),
-        territory: xpath(li_node, ~x"//mapZone/@territory"l),
-        type: xpath(li_node, ~x"//mapZone/@type"l)
-      }
-    end)
-  end
+  @windows_zones (
+                   @windows_zone_file
+                   |> File.read!()
+                   |> parse(namespace_conformant: true)
+                   |> xpath(~x"//mapZone"l)
+                   |> Enum.map(fn node ->
+                     %{
+                       zone: xpath(node, ~x"./@other"s),
+                       territory: xpath(node, ~x"./@territory"s),
+                       type: xpath(node, ~x"./@type"s)
+                     }
+                   end)
+                 )
+
+  @windows_zone_map Enum.reduce(@windows_zones, %{}, fn %{zone: zone, type: type}, acc ->
+                        Map.update(acc, zone, [type], fn existing -> existing ++ [type] end)
+                      end)
+
+  @spec extract_windows_zones() :: [map()]
+  def extract_windows_zones, do: @windows_zones
 
   @spec get_iana(String.t()) :: [String.t()]
   def get_iana(windows_tz) do
-    extract_windows_zones()
-    |> Enum.reduce([], fn %{type: type, zone: zone, territory: _territory}, acc ->
-      zone = to_string(zone)
-
-      if zone == windows_tz, do: acc ++ [to_string(type)], else: acc
-    end)
+    Map.get(@windows_zone_map, windows_tz, [])
   end
 end

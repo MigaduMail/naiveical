@@ -1,4 +1,4 @@
-defmodule CalendarClient.Naiveical.Comparator do
+defmodule Naiveical.Comparator do
   @moduledoc """
   Compares icalendar texts.
   """

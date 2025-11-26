@@ -19,6 +19,23 @@ defmodule Naiveical.HelpersTest do
       expected = {:ok, DateTime.new!(~D[2020-05-14], ~T[10:00:00], "Europe/Zurich")}
       assert expected == actual
     end
+
+    test "windows timezone alias is resolved" do
+      datetime_str = "20250101T120000"
+
+      actual = Naiveical.Helpers.parse_datetime(datetime_str, "W. Europe Standard Time")
+
+      assert {:ok, %DateTime{} = dt} = actual
+      assert dt.time_zone == "Europe/Berlin"
+      assert dt.year == 2025
+      assert dt.hour == 12
+    end
+
+    test "returns error for unknown timezone" do
+      result = Naiveical.Helpers.parse_datetime("20250101T120000", "Mars/Phobos")
+
+      assert result == {:error, {:unknown_timezone, "Mars/Phobos"}}
+    end
   end
 
   describe "parse_icalendar_datetime/1" do
