@@ -1,7 +1,7 @@
 defmodule Naiveical.MixProject do
   use Mix.Project
 
-  @version "0.1.15"
+  @version "1.0.0"
 
   def project do
     [
