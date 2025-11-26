@@ -47,22 +47,51 @@ defmodule Naiveical.AlarmFilterTest do
     assert [^object] = AlarmFilter.apply([object], @range)
   end
 
+  test "repeating alarm where only later repetitions match range" do
+    ical =
+      """
+      BEGIN:VCALENDAR
+      VERSION:2.0
+      BEGIN:VEVENT
+      DTSTART:20251231T235500Z
+      DTEND:20260101T000500Z
+      UID:complex-alarm-6
+      BEGIN:VALARM
+      ACTION:DISPLAY
+      TRIGGER:-PT10M
+      REPEAT:10
+      DURATION:PT2M
+      END:VALARM
+      END:VEVENT
+      END:VCALENDAR
+      """
+      |> String.trim()
+
+    object = build_object(ical)
+    # First alarm at 23:45 Dec 31, repetitions every 2 min: 23:47, 23:49, 23:51, 23:53, 23:55, 23:57, 23:59, 00:01, 00:03, 00:05
+    # The ones at 00:01, 00:03, 00:05 fall in Jan 1 range
+    range = %{start: "20260101T000000Z", end: "20260101T010000Z"}
+    assert [^object] = AlarmFilter.apply([object], range)
+  end
+
   test "matches repeating alarm triggers" do
-    ical = """
-    BEGIN:VCALENDAR
-    BEGIN:VEVENT
-    DTSTART;TZID=US/Eastern:20260101T030000
-    DURATION:PT30M
-    UID:alarm-repeat
-    BEGIN:VALARM
-    ACTION:DISPLAY
-    TRIGGER;RELATED=START:-PT15M
-    REPEAT:2
-    DURATION:PT5M
-    END:VALARM
-    END:VEVENT
-    END:VCALENDAR
-    """
+    ical =
+      """
+      BEGIN:VCALENDAR
+      BEGIN:VEVENT
+      DTSTART;TZID=US/Eastern:20260101T030000
+      DURATION:PT30M
+      UID:alarm-repeat
+      BEGIN:VALARM
+      ACTION:DISPLAY
+      TRIGGER;RELATED=START:-PT15M
+      REPEAT:2
+      DURATION:PT5M
+      END:VALARM
+      END:VEVENT
+      END:VCALENDAR
+      """
+      |> String.trim()
 
     object = build_object(ical, uri: "alarm-repeat.ics")
     range = %{start: "20251231T230000Z", end: "20260101T090000Z"}

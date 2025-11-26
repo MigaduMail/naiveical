@@ -22,7 +22,7 @@ defmodule Naiveical.WindowsIanaConvert do
 
   def get_iana(windows_tz) do
     extract_windows_zones()
-    |> Enum.reduce([], fn %{type: type, zone: zone, territory: territory}, acc ->
+    |> Enum.reduce([], fn %{type: type, zone: zone, territory: _territory}, acc ->
       zone = to_string(zone)
 
       if zone == windows_tz, do: acc ++ [to_string(type)], else: acc

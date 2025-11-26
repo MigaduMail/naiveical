@@ -6,7 +6,6 @@ defmodule Naiveical.Modificator do
   alias Naiveical.Helpers
   alias Naiveical.Extractor
 
-  @datetime_format_str "{YYYY}{0M}{0D}T{h24}{m}Z"
 
   defp remove_carrier_returns(txt), do: String.replace(txt, "\r\n", "\n")
   defp add_carrier_returns(txt), do: String.replace(txt, ~r/\r?\n/, "\r\n")
@@ -28,7 +27,7 @@ defmodule Naiveical.Modificator do
     end
   end
 
-  def change_value_txt(ical_text, "", new_value, new_properties), do: ical_text
+  def change_value_txt(ical_text, "", _new_value, _new_properties), do: ical_text
 
   def change_value_txt(ical_text, tag, new_value, new_properties) do
     {start_idx, str_len, tag} =
@@ -60,7 +59,7 @@ defmodule Naiveical.Modificator do
   end
 
   def change_value_txt(ical_text, tag, new_value) do
-    {tag, properties, values} = Extractor.extract_contentline_by_tag(ical_text, tag)
+    {tag, _properties, _values} = Extractor.extract_contentline_by_tag(ical_text, tag)
     change_value_txt(ical_text, tag, new_value, "")
   end
 
@@ -80,17 +79,17 @@ defmodule Naiveical.Modificator do
         ical_text,
         tag,
         %DateTime{
-          year: year,
-          month: month,
-          day: day,
-          zone_abbr: zone_abbr,
-          hour: hour,
-          minute: minute,
-          second: second,
-          microsecond: microsecond,
-          utc_offset: utc_offset,
-          std_offset: std_offset,
-          time_zone: time_zone
+          year: _year,
+          month: _month,
+          day: _day,
+          zone_abbr: _zone_abbr,
+          hour: _hour,
+          minute: _minute,
+          second: _second,
+          microsecond: _microsecond,
+          utc_offset: _utc_offset,
+          std_offset: _std_offset,
+          time_zone: _time_zone
         } = datetime
       ) do
     change_value_txt(ical_text, tag, Timex.format(datetime, "{ISO:Basic:Z}"))
@@ -162,7 +161,7 @@ defmodule Naiveical.Modificator do
       ends = Regex.scan(regex_end, ical_text, return: :index)
 
       if length(begins) == length(ends) do
-        [{first_begin_start, first_begin_length}] = Enum.at(begins, 0)
+        [{first_begin_start, _first_begin_length}] = Enum.at(begins, 0)
         [{last_end_start, last_end_length}] = Enum.at(ends, -1)
 
         last_part =
@@ -178,7 +177,7 @@ defmodule Naiveical.Modificator do
             String.slice(ical_text, 0, first_begin_start - 1),
             fn i, acc ->
               [{end_start, end_length}] = Enum.at(ends, i)
-              [{begin_start, begin_length}] = Enum.at(begins, i + 1)
+              [{begin_start, _begin_length}] = Enum.at(begins, i + 1)
 
               start_idx = end_start + end_length
               str_len = begin_start - (end_start + end_length) - 1

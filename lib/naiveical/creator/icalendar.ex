@@ -12,15 +12,14 @@ defmodule Naiveical.Creator.Icalendar do
         method \\ "PUBLISH",
         prod_id \\ "Excalt"
       ) do
-    ical =
-      """
-      BEGIN:VCALENDAR
-      VERSION:2.0
-      PRODID:#{prod_id}
-      METHOD:#{method}
-      END:VCALENDAR
-      """
-      |> String.replace(~r/\r?\n/, "\r\n")
+    """
+    BEGIN:VCALENDAR
+    VERSION:2.0
+    PRODID:#{prod_id}
+    METHOD:#{method}
+    END:VCALENDAR
+    """
+    |> String.replace(~r/\r?\n/, "\r\n")
   end
 
   @doc """
@@ -34,20 +33,19 @@ defmodule Naiveical.Creator.Icalendar do
         description \\ "",
         class \\ "PUBLIC"
       ) do
-    ical =
-      """
-      BEGIN:VEVENT
-      UID:#{Uniq.UUID.uuid1()}
-      LOCATION:#{location}
-      SUMMARY:#{summary}
-      DESCRIPTION:#{description}
-      CLASS:#{class}
-      DTSTART:#{Timex.format!(dtstart, "{ISO:Basic:Z}")}
-      DTEND:#{Timex.format!(dtend, "{ISO:Basic:Z}")}
-      DTSTAMP:#{Timex.format!(DateTime.utc_now(), "{ISO:Basic:Z}")}
-      END:VEVENT
-      """
-      |> String.replace(~r/\r?\n/, "\r\n")
+    """
+    BEGIN:VEVENT
+    UID:#{Uniq.UUID.uuid1()}
+    LOCATION:#{location}
+    SUMMARY:#{summary}
+    DESCRIPTION:#{description}
+    CLASS:#{class}
+    DTSTART:#{Timex.format!(dtstart, "{ISO:Basic:Z}")}
+    DTEND:#{Timex.format!(dtend, "{ISO:Basic:Z}")}
+    DTSTAMP:#{Timex.format!(DateTime.utc_now(), "{ISO:Basic:Z}")}
+    END:VEVENT
+    """
+    |> String.replace(~r/\r?\n/, "\r\n")
   end
 
   @doc """
@@ -95,18 +93,17 @@ defmodule Naiveical.Creator.Icalendar do
           "#{due}\n"
       end
 
-    ical =
-      ("""
-       BEGIN:VTODO
-       SUMMARY:#{summary}
-       #{dtstamp_str}
-       #{due_str}
-       """ <>
-         other <>
-         """
-         END:VTODO
-         """)
-      |> String.replace(~r/(\r?\n)+/, "\r\n")
+    ("""
+     BEGIN:VTODO
+     SUMMARY:#{summary}
+     #{dtstamp_str}
+     #{due_str}
+     """ <>
+       other <>
+       """
+       END:VTODO
+       """)
+    |> String.replace(~r/(\r?\n)+/, "\r\n")
   end
 
   def create_valert(description, %Date{} = date) do

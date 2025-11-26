@@ -146,7 +146,7 @@ defmodule Naiveical.Helpers do
       true
     else
       case Timex.parse(datetime_str, date_format_str) do
-        {:ok, datetime} -> true
+        {:ok, _datetime} -> true
         _ -> false
       end
     end
